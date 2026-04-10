@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Calendar, MapPin, Share2, ArrowLeft, Ticket, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Clock, Share2, ArrowLeft, Ticket, CheckCircle2, ExternalLink } from 'lucide-react';
 import { MOCK_EVENTS } from '../lib/mockData';
 import { Event } from '../types';
 import TicketPurchaseFlow from '../components/TicketPurchaseFlow';
@@ -132,7 +132,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
               <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 ring-4 ring-blue-50">
                 <div className="flex items-center justify-between mb-6">
                   <span className="text-gray-500 font-medium">{t('standardTicket')}</span>
-                  <span className="text-3xl font-extrabold text-blue-600">{event.price} <span className="text-sm font-medium text-gray-400">ETB</span></span>
+                  <span className="text-3xl font-extrabold text-blue-600">{event.ticket_price} <span className="text-sm font-medium text-gray-400">ETB</span></span>
                 </div>
                 
                 <ul className="space-y-4 mb-8">
@@ -158,6 +158,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
                   {t('buyTicket')}
                 </button>
 
+                {/* Added Limited Tickets Message */}
                 <div className="mt-4 p-4 bg-orange-50 rounded-2xl border border-orange-100 flex gap-3">
                   <div className="w-8 h-8 bg-orange-500 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-xs">
                     !

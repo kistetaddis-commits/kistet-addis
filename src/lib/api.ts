@@ -1,243 +1,236 @@
-import { Event, User, Ticket, Payment, DashboardMetrics, PaymentMethod, UserRole, PaymentSetting } from '../types';
+const API_URL = "http://localhost:5000";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+/**
+ * Handle API response safely
+ */
+async function handleResponse(res: Response) {
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "API Error");
+  }
+  return res.json();
+}
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('kistet_token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-};
-
+/**
+ * =========================
+ * MAIN API OBJECT
+ * =========================
+ */
 export const api = {
-  // Auth
-  login: async (identifier: string, password: string) => {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password })
+  /**
+   * AUTH
+   */
+  login: async (email: string, password: string) => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Login failed');
-    }
-    return res.json();
+    return handleResponse(res);
   },
 
-  getMe: async (): Promise<User> => {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: getAuthHeaders()
+  loginWithUsernameOrEmail: async (identifier: string, password: string) => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, password }),
     });
-    if (!res.ok) throw new Error('Not authenticated');
-    return res.json();
+    return handleResponse(res);
   },
 
-  updateProfile: async (profileData: Partial<User> & { password?: string }) => {
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(profileData)
+  /**
+   * 🔥 ADD THESE (FIX YOUR ERROR)
+   */
+  getMe: async () => {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to update profile');
-    }
-    return res.json();
+
+    return handleResponse(res);
   },
 
-  // Events
-  getEvents: async (): Promise<Event[]> => {
-    const res = await fetch(`${API_BASE_URL}/events`);
-    if (!res.ok) throw new Error('Failed to fetch events');
-    const data = await res.json();
-    return data.map((e: any) => ({
-      ...e,
-      event_date: e.date,
-      ticket_price: parseFloat(e.price)
-    }));
+  logout: () => {
+    localStorage.removeItem("token");
   },
 
-  getEventById: async (id: string): Promise<Event> => {
-    const res = await fetch(`${API_BASE_URL}/events/${id}`);
-    if (!res.ok) throw new Error('Event not found');
-    const e = await res.json();
-    return {
-      ...e,
-      event_date: e.date,
-      ticket_price: parseFloat(e.price)
-    };
+  /**
+   * EVENTS
+   */
+  getAllEvents: async () => {
+    const res = await fetch(`${API_URL}/events`);
+    return handleResponse(res);
   },
 
-  createEvent: async (eventData: any) => {
-    // Normalize fields for backend expectation
-    const payload = {
-      ...eventData,
-      date: eventData.date || eventData.event_date,
-      price: eventData.price !== undefined ? eventData.price : eventData.ticket_price
-    };
-    
-    const res = await fetch(`${API_BASE_URL}/events`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload)
+  getEvents: async () => {
+    const res = await fetch(`${API_URL}/events`);
+    return handleResponse(res);
+  },
+
+  getEvent: async (id: string) => {
+    const res = await fetch(`${API_URL}/events/${id}`);
+    return handleResponse(res);
+  },
+
+  createEvent: async (data: any) => {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${API_URL}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to create event');
-    }
-    return res.json();
+
+    return handleResponse(res);
   },
 
-  deleteEvent: async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/events/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
+  /**
+   * UPLOAD
+   */
+  uploadImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(`${API_URL}/upload`, {
+      method: "POST",
+      body: formData,
     });
-    if (!res.ok) throw new Error('Failed to delete event');
-    return res.json();
+
+    return handleResponse(res);
   },
 
-  getAssignedEvents: async (): Promise<Event[]> => {
-    const res = await fetch(`${API_BASE_URL}/events/assigned`, {
-      headers: getAuthHeaders()
+  /**
+   * TICKETS
+   */
+  purchaseTicket: async (data: any) => {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${API_URL}/tickets/purchase`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to fetch assigned events');
-    return res.json();
+
+    return handleResponse(res);
   },
 
-  // Tickets & Payments
-  createTicket: async (ticketData: any) => {
-    const res = await fetch(`${API_BASE_URL}/tickets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ticketData)
+  scanTicket: async (qrCode: string) => {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${API_URL}/tickets/scan`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ qrCode }),
     });
-    if (!res.ok) throw new Error('Failed to create ticket');
-    return res.json();
+
+    return handleResponse(res);
   },
 
-  submitPayment: async (paymentData: any) => {
-    const res = await fetch(`${API_BASE_URL}/payments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(paymentData)
-    });
-    if (!res.ok) throw new Error('Failed to submit payment');
-    return res.json();
-  },
-
-  getPaymentStatus: async (ticketId: string) => {
-    const res = await fetch(`${API_BASE_URL}/payments/${ticketId}/status`);
-    if (!res.ok) throw new Error('Failed to fetch status');
-    return res.json();
-  },
-
-  getEventTickets: async (eventId: string): Promise<Ticket[]> => {
-    const res = await fetch(`${API_BASE_URL}/events/${eventId}/tickets`, {
-      headers: getAuthHeaders()
-    });
-    if (!res.ok) throw new Error('Failed to fetch event tickets');
-    return res.json();
-  },
-
-  // Admin
-  getMetrics: async (): Promise<DashboardMetrics> => {
-    const res = await fetch(`${API_BASE_URL}/admin/metrics`, {
-      headers: getAuthHeaders()
-    });
-    if (!res.ok) throw new Error('Failed to fetch metrics');
-    return res.json();
-  },
-
-  getPendingPayments: async () => {
-    const res = await fetch(`${API_BASE_URL}/admin/payments/pending`, {
-      headers: getAuthHeaders()
-    });
-    if (!res.ok) throw new Error('Failed to fetch pending payments');
-    return res.json();
-  },
-
-  verifyPayment: async (paymentId: string, status: 'approved' | 'rejected', notes?: string) => {
-    const res = await fetch(`${API_BASE_URL}/admin/payments/${paymentId}/verify`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ status, admin_notes: notes })
-    });
-    if (!res.ok) throw new Error('Verification failed');
-    return res.json();
-  },
-
-  verifyTicket: async (qrData: string) => {
-    const res = await fetch(`${API_BASE_URL}/admin/verify-ticket`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ qr_data: qrData })
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Verification failed');
-    }
-    return res.json();
-  },
-
-  scanTicket: async (qrData: string) => {
-    return api.verifyTicket(qrData);
+  /**
+   * ADMIN
+   */
+  getMetrics: async () => {
+    const res = await fetch(`${API_URL}/admin/metrics`);
+    return handleResponse(res);
   },
 
   getOrganizers: async () => {
-    const res = await fetch(`${API_BASE_URL}/admin/organizers`, {
-      headers: getAuthHeaders()
+    const res = await fetch(`${API_URL}/organizers`);
+    return handleResponse(res);
+  },
+
+  /**
+   * PAYMENTS
+   */
+  getPendingPayments: async () => {
+    const res = await fetch(`${API_URL}/payments/pending`);
+    return handleResponse(res);
+  },
+
+  verifyPayment: async (
+    paymentId: string,
+    status: string,
+    reason?: string
+  ) => {
+    const res = await fetch(`${API_URL}/payments/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentId, status, reason }),
     });
-    if (!res.ok) throw new Error('Failed to fetch organizers');
-    return res.json();
+
+    return handleResponse(res);
   },
 
-  createOrganizer: async (data: any) => {
-    const res = await fetch(`${API_BASE_URL}/admin/organizers`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create organizer');
-    return res.json();
-  },
+  /**
+   * PROFILE
+   */
+  updateProfile: async (data: any) => {
+    const token = localStorage.getItem("token");
 
-  // Settings
-  getSettings: async () => {
-    const res = await fetch(`${API_BASE_URL}/settings`);
-    if (!res.ok) throw new Error('Failed to fetch settings');
-    return res.json();
-  },
-
-  saveSettings: async (settings: any[]) => {
-    const res = await fetch(`${API_BASE_URL}/settings`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(settings)
-    });
-    if (!res.ok) throw new Error('Failed to save settings');
-    return res.json();
-  },
-
-  // Storage
-  uploadImage: async (file: File) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    const token = localStorage.getItem('kistet_token');
-    const res = await fetch(`${API_BASE_URL}/upload`, {
-      method: 'POST',
+    const res = await fetch(`${API_URL}/users/profile`, {
+      method: "PUT",
       headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: formData
+      body: JSON.stringify(data),
     });
-    
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to upload image');
-    }
-    return res.json();
-  }
+
+    return handleResponse(res);
+  },
+
+  /**
+   * ORGANIZERS
+   */
+  createOrganizer: async (data: any) => {
+    const res = await fetch(`${API_URL}/organizers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
 };
+
+/**
+ * =========================
+ * NAMED EXPORTS (IMPORTANT)
+ * =========================
+ */
+export const login = api.login;
+export const loginWithUsernameOrEmail = api.loginWithUsernameOrEmail;
+
+export const getMe = api.getMe;
+export const logout = api.logout;
+
+export const getAllEvents = api.getAllEvents;
+export const getEvents = api.getEvents;
+export const getEvent = api.getEvent;
+
+export const createEvent = api.createEvent;
+export const uploadImage = api.uploadImage;
+
+export const purchaseTicket = api.purchaseTicket;
+export const scanTicket = api.scanTicket;
+
+export const getMetrics = api.getMetrics;
+export const getOrganizers = api.getOrganizers;
+
+export const getPendingPayments = api.getPendingPayments;
+export const verifyPayment = api.verifyPayment;
+
+export const updateProfile = api.updateProfile;
+export const createOrganizer = api.createOrganizer;

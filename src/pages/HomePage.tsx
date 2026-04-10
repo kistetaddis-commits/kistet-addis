@@ -13,8 +13,6 @@ const HomePage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const bannerUrl = "https://storage.googleapis.com/dala-prod-public-storage/generated-images/11a7535b-716b-4371-84ef-523ca3f266db/kistet-addis-banner-78f6cc72-1775548074529.webp";
-
   useEffect(() => {
     const fetchEvents = async () => {
       setIsLoading(true);
@@ -48,16 +46,16 @@ const HomePage: React.FC = () => {
     <div className="flex flex-col gap-8 pb-12">
       <section className="relative h-[300px] md:h-[450px] overflow-hidden rounded-2xl mx-4 mt-4">
         <img 
-          src={bannerUrl} 
-          alt={t('promoBannerAlt') || 'Kistet Addis Banner'}
+          src="https://storage.googleapis.com/dala-prod-public-storage/generated-images/11a7535b-716b-4371-84ef-523ca3f266db/promo-banner-f23acc9b-1774949050106.webp" 
+          alt={t('promoBannerAlt')}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent flex items-center p-8">
           <div className="max-w-md text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{t('heroBannerTitle') || 'Discover Amazing Events in Addis'}</h1>
-            <p className="text-lg mb-6 text-gray-200">{t('heroBannerSubtitle') || 'Find the best concerts, conferences, and cultural events.'}</p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">{t('heroBannerTitle')}</h1>
+            <p className="text-lg mb-6 text-gray-200">{t('heroBannerSubtitle')}</p>
             <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-bold transition-colors">
-              {t('exploreNow') || 'Explore Now'}
+              {t('exploreNow')}
             </button>
           </div>
         </div>
@@ -69,7 +67,7 @@ const HomePage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input 
               type="text" 
-              placeholder={t('searchEvents') || 'Search events...'}
+              placeholder={t('searchEvents')}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -86,7 +84,7 @@ const HomePage: React.FC = () => {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {cat === 'all' ? (t('allCategories') || 'All') : (t(cat) || cat)}
+                {cat === 'all' ? t('allCategories') : t(cat)}
               </button>
             ))}
           </div>
@@ -94,7 +92,7 @@ const HomePage: React.FC = () => {
       </section>
 
       <section className="px-4 max-w-7xl mx-auto w-full">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">{t('upcomingEvents') || 'Upcoming Events'}</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">{t('upcomingEvents')}</h2>
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -127,7 +125,7 @@ const HomePage: React.FC = () => {
                     <div className="flex flex-col gap-2 text-gray-500 text-sm mb-4">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-orange-500" />
-                        <span>{new Date(event.date).toLocaleDateString()}</span>
+                        <span>{new Date(event.date).toLocaleDateString(language === 'en' ? 'en-US' : 'am-ET')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-orange-500" />
@@ -136,7 +134,7 @@ const HomePage: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between mt-auto">
                       <div className="text-2xl font-black text-gray-900">
-                        {t('currency') || 'ETB'} {event.price}
+                        {t('currency')} {event.price}
                       </div>
                       <div className="bg-blue-50 p-2 rounded-full text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                         <ChevronRight className="w-5 h-5" />
@@ -152,7 +150,7 @@ const HomePage: React.FC = () => {
         {!isLoading && filteredEvents.length === 0 && (
           <div className="text-center py-20 text-gray-400">
             <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">{t('eventNotFound') || 'No events found'}</p>
+            <p className="text-lg">{t('eventNotFound')}</p>
           </div>
         )}
       </section>

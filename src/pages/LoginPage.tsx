@@ -55,12 +55,6 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await api.login(values.email, values.password);
-      
-      // Save token to localStorage for subsequent API calls
-      if (data.token) {
-        localStorage.setItem('kistet_token', data.token);
-      }
-      
       setUser(data.user);
       toast.success(t('loginSuccess'));
       

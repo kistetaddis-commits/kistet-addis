@@ -11,12 +11,7 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
   const { language, t } = useLanguage();
 
-  const getTitle = () => {
-    if (typeof event.title === 'string') return event.title;
-    return (event.title as any)[language] || (event.title as any).en || '';
-  };
-
-  const eventDate = event.event_date || event.date || '';
+  const eventDate = event.date || '';
 
   return (
     <div 
@@ -25,12 +20,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
     >
       <div className="relative h-48 overflow-hidden">
         <img 
-          src={event.image_url || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800'} 
-          alt={getTitle()} 
+          src={event.image_url} 
+          alt={event.title} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-blue-600 font-bold text-sm shadow-sm">
-          {t('currency')} {event.ticket_price || event.price}
+          {t('currency')} {event.price}
         </div>
         <div className="absolute bottom-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
           {event.event_type}
@@ -39,7 +34,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
       
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
-          {getTitle()}
+          {event.title}
         </h3>
         
         <div className="space-y-2 mb-4">

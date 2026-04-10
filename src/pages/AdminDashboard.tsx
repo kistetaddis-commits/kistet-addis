@@ -8,23 +8,25 @@ import {
   PieChart, 
   LogOut, 
   QrCode,
+  Settings,
   X,
   User as UserIcon,
   Loader2,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { Event } from '../types';
+import { User, Event } from '../types';
 import { toast } from 'sonner';
 import EventCard from '../components/EventCard';
 
 const AdminDashboard: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { user: currentUser, refreshProfile, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'events' | 'organizers' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'events' | 'organizers' | 'settings' | 'profile'>('overview');
   const [pendingPayments, setPendingPayments] = useState<any[]>([]);
   const [eventsData, setEventsData] = useState<Event[] | null>(null);
   const [organizers, setOrganizers] = useState<any[]>([]);
@@ -73,7 +75,9 @@ const AdminDashboard: React.FC = () => {
         setEventsData(e);
       } else if (activeTab === 'organizers') {
         const o = await api.getOrganizers();
+        const e = await api.getEvents();
         setOrganizers(o);
+        setEventsData(e);
       }
     } catch (err: any) {
       setError(err.message);
@@ -104,11 +108,11 @@ const AdminDashboard: React.FC = () => {
   const handleVerify = async (paymentId: string) => {
     setIsVerifying(paymentId);
     try {
-      await api.verifyPayment(paymentId, 'approved');
-      toast.success(t('paymentApprovedToast') || 'Payment approved!');
+      await api.verifyPayment(paymentId, 'verified');
+      toast.success(t('paymentApprovedToast'));
       fetchData();
     } catch (error) {
-      toast.error(t('approveFailedToast') || 'Approval failed');
+      toast.error(t('approveFailedToast'));
     } finally {
       setIsVerifying(null);
     }
@@ -120,10 +124,10 @@ const AdminDashboard: React.FC = () => {
     setIsVerifying(paymentId);
     try {
       await api.verifyPayment(paymentId, 'rejected', reason);
-      toast.success(t('paymentRejectToast') || 'Payment rejected');
+      toast.success(t('paymentRejectToast'));
       fetchData();
     } catch (error) {
-      toast.error(t('rejectFailedToast') || 'Rejection failed');
+      toast.error(t('rejectFailedToast'));
     } finally {
       setIsVerifying(null);
     }
@@ -137,9 +141,9 @@ const AdminDashboard: React.FC = () => {
       await api.updateProfile({ name: profileName, email: profileEmail, password: profilePassword });
       await refreshProfile();
       setProfilePassword('');
-      toast.success(t('profileUpdateSuccess') || 'Profile updated!');
+      toast.success(t('profileUpdateSuccess'));
     } catch (error: any) {
-      toast.error(error.message || t('profileUpdateFailed') || 'Update failed');
+      toast.error(error.message || t('profileUpdateFailed'));
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -163,11 +167,11 @@ const AdminDashboard: React.FC = () => {
         </div>
         <nav className="flex-1 px-4 space-y-2">
           {[
-            { id: 'overview', icon: LayoutDashboard, label: t('dashboard') },
-            { id: 'payments', icon: CheckCircle, label: t('pendingApprovals') },
-            { id: 'events', icon: Calendar, label: t('events') },
-            { id: 'organizers', icon: Users, label: t('organizers') },
-            { id: 'profile', icon: UserIcon, label: t('updateProfile') },
+            { id: 'overview', icon: LayoutDashboard, label: t('dashboard'), type: 'tab' },
+            { id: 'payments', icon: CheckCircle, label: t('pendingApprovals'), type: 'tab' },
+            { id: 'events', icon: Calendar, label: t('events'), type: 'tab' },
+            { id: 'organizers', icon: Users, label: t('organizers'), type: 'tab' },
+            { id: 'profile', icon: UserIcon, label: t('updateProfile'), type: 'tab' },
           ].map((item) => (
             <button
               key={item.id}
@@ -290,12 +294,12 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="md:col-span-2 bg-white rounded-3xl border border-gray-100 overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-gray-50"><tr><th className="px-6 py-4 text-left font-black text-xs uppercase text-gray-400">Organizer</th><th className="px-6 py-4 text-left font-black text-xs uppercase text-gray-400">Role</th></tr></thead>
+                    <thead className="bg-gray-50"><tr><th className="px-6 py-4 text-left font-black text-xs uppercase text-gray-400">Organizer</th><th className="px-6 py-4 text-left font-black text-xs uppercase text-gray-400">Event</th></tr></thead>
                     <tbody>
                       {organizers.map(org => (
                         <tr key={org.id} className="border-t border-gray-50">
                           <td className="px-6 py-4"><p className="font-bold text-gray-800">{org.name}</p><p className="text-xs text-gray-500">{org.email}</p></td>
-                          <td className="px-6 py-4 font-bold text-sm text-gray-600">{org.role}</td>
+                          <td className="px-6 py-4 font-bold text-sm text-gray-600">{org.event_title || 'No event'}</td>
                         </tr>
                       ))}
                       {organizers.length === 0 && (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { Search, Ticket as TicketIcon, Loader2 } from 'lucide-react';
-import { api } from '../lib/api';
+import { getAllEvents } from '../lib/api';
 import EventCard from '../components/EventCard';
 import { motion } from 'framer-motion';
 import { Event } from '../types';
@@ -24,7 +24,7 @@ const Home: React.FC<HomeProps> = ({ onEventClick }) => {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const data = await api.getEvents();
+        const data = await getAllEvents();
         setEvents(data);
       } catch (error) {
         console.error('Home page fetch error:', error);
@@ -44,7 +44,7 @@ const Home: React.FC<HomeProps> = ({ onEventClick }) => {
   const filteredEvents = events.filter(event => {
     const title = getEventTitle(event);
     const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = activeCategory === 'All' || (event.event_type || '').toLowerCase() === activeCategory.toLowerCase();
+    const matchesCategory = activeCategory === 'All' || event.event_type === activeCategory;
     return matchesSearch && matchesCategory;
   });
 

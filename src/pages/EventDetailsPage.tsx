@@ -32,7 +32,7 @@ const EventDetailsPage: React.FC = () => {
       if (!id) return;
       setIsLoading(true);
       try {
-        const data = await api.getEventById(id);
+        const data = await api.getEvent(id);
         setEvent(data);
       } catch (error) {
         console.error('Error fetching event:', error);
@@ -188,7 +188,7 @@ const EventDetailsPage: React.FC = () => {
                 <div className="space-y-4 mb-10">
                   <div className="flex items-center gap-3 text-gray-500 font-bold bg-gray-50 p-4 rounded-2xl">
                     <Ticket className="w-5 h-5 text-blue-500" />
-                    <span>{event.total_tickets} {t('ticketsAvailable')}</span>
+                    <span>{event.total_tickets - (event.sold_tickets || 0)} {t('ticketsLeft')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-500 font-bold bg-gray-50 p-4 rounded-2xl">
                     <Clock className="w-5 h-5 text-orange-500" />
@@ -204,7 +204,7 @@ const EventDetailsPage: React.FC = () => {
                 </Button>
                 
                 <p className="text-center mt-6 text-xs text-gray-400 font-bold">
-                  Powered by Kistet Addis \u2022 Secure Payment
+                  Powered by Kistet Addis • Secure Payment
                 </p>
               </div>
             </div>
@@ -214,12 +214,10 @@ const EventDetailsPage: React.FC = () => {
 
       <AnimatePresence>
         {showPurchase && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-             <TicketPurchaseFlow 
-               event={event} 
-               onClose={() => setShowPurchase(false)} 
-             />
-          </div>
+          <TicketPurchaseFlow 
+            event={event} 
+            onClose={() => setShowPurchase(false)} 
+          />
         )}
       </AnimatePresence>
     </div>

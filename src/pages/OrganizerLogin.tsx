@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 
 const OrganizerLogin: React.FC = () => {
   const { t } = useLanguage();
-  const { user: authUser, isLoading: authLoading, setUser, signOut } = useAuth();
+  const { user: authUser, isLoading: authLoading, setUser } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,14 +33,9 @@ const OrganizerLogin: React.FC = () => {
       
       if (data.user.role !== 'organizer' && data.user.role !== 'admin') {
         toast.error('Access denied. This portal is for organizers only.');
-        signOut();
+        api.logout();
         setLoading(false);
         return;
-      }
-
-      // Save token to localStorage for subsequent API calls
-      if (data.token) {
-        localStorage.setItem('kistet_token', data.token);
       }
 
       toast.success(`Welcome, ${data.user.name || 'Organizer'}`);
