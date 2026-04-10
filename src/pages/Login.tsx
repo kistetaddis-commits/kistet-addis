@@ -22,9 +22,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const isNavigating = useRef(false);
 
-  const logoUrl =
-    "https://storage.googleapis.com/dala-prod-public-storage/attachments/18fcb530-83a1-4b00-a8a0-fe9a27e33d5e/1774954026086_logos-03.jpg";
-
   const performRedirect = useCallback(
     (user: any) => {
       if (!user || isNavigating.current) return;
@@ -57,8 +54,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const { user, error } =
-        await loginWithUsernameOrEmail(identifier, password);
+      const result = await loginWithUsernameOrEmail(identifier, password);
+
+      const user = result?.user;
+      const error = result?.error;
 
       if (error || !user) {
         toast.error(error || 'Invalid credentials');
@@ -68,8 +67,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       setUser(user);
       toast.success(`Welcome back, ${user.name || 'User'}!`);
+
     } catch (err) {
-      toast.error('An error occurred during login');
+      toast.error('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -88,17 +88,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="bg-white p-8 md:p-12 rounded-[2rem] shadow-xl w-full max-w-md border border-gray-100">
 
         <div className="text-center mb-10 flex flex-col items-center">
-          <div
-            className="w-64 h-20 bg-no-repeat bg-contain mb-6"
-            style={{
-              backgroundImage: `url(${logoUrl})`,
-              backgroundPosition: '0% 0%',
-              backgroundSize: '200% 200%',
-            }}
-            role="img"
-            aria-label="Kistet Addis Logo"
-          />
-
           <h2 className="text-3xl font-black text-gray-900">Staff Portal</h2>
           <p className="text-gray-500 mt-2 font-medium">
             Login to manage events and tickets
@@ -106,35 +95,34 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
+
+          <div>
             <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <User className="w-4 h-4 text-gray-400" />
+              <User className="w-4 h-4" />
               Username or Email
             </label>
 
             <input
               type="text"
-              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
-              placeholder="Enter your credentials"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border"
               required
               disabled={loading}
             />
           </div>
 
-          <div className="space-y-2">
+          <div>
             <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-gray-400" />
+              <Lock className="w-4 h-4" />
               Password
             </label>
 
             <input
               type="password"
-              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border"
               required
               disabled={loading}
             />
@@ -143,22 +131,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+            className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2"
           >
             {loading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <Loader2 className="animate-spin w-5 h-5" />
             ) : (
-              <LogIn className="w-6 h-6" />
+              <LogIn className="w-5 h-5" />
             )}
             {t('adminLogin')}
           </button>
         </form>
-
-        <div className="mt-8 pt-8 border-t border-gray-100 text-center">
-          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">
-            Staff access only
-          </p>
-        </div>
       </div>
     </div>
   );
