@@ -1,46 +1,73 @@
-const API_URL = "http://localhost:5000";
+// =========================
+// API BASE URL (IMPORTANT)
+// =========================
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-/**
- * Handle API response safely
- */
+// =========================
+// HANDLE RESPONSE
+// =========================
 async function handleResponse(res: Response) {
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "API Error");
+  let data;
+
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("Invalid server response");
   }
-  return res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "API Error");
+  }
+
+  return data;
 }
 
-/**
- * =========================
- * MAIN API OBJECT
- * =========================
- */
+// =========================
+// MAIN API OBJECT
+// =========================
 export const api = {
-  /**
-   * AUTH
-   */
+  // ================= AUTH =================
   login: async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ email, password }),
     });
-    return handleResponse(res);
+
+    const data = await handleResponse(res);
+
+    // ✅ Save token automatically
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+
+    return data;
   },
 
   loginWithUsernameOrEmail: async (identifier: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: identifier, // backend expects email
+        password,
+      }),
     });
-    return handleResponse(res);
+
+    const data = await handleResponse(res);
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+
+    return data;
   },
 
-  /**
-   * 🔥 ADD THESE (FIX YOUR ERROR)
-   */
   getMe: async () => {
     const token = localStorage.getItem("token");
 
@@ -57,14 +84,7 @@ export const api = {
     localStorage.removeItem("token");
   },
 
-  /**
-   * EVENTS
-   */
-  getAllEvents: async () => {
-    const res = await fetch(`${API_URL}/events`);
-    return handleResponse(res);
-  },
-
+  // ================= EVENTS =================
   getEvents: async () => {
     const res = await fetch(`${API_URL}/events`);
     return handleResponse(res);
@@ -90,24 +110,25 @@ export const api = {
     return handleResponse(res);
   },
 
-  /**
-   * UPLOAD
-   */
+  // ================= UPLOAD =================
   uploadImage: async (file: File) => {
+    const token = localStorage.getItem("token");
+
     const formData = new FormData();
     formData.append("image", file);
 
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
 
     return handleResponse(res);
   },
 
-  /**
-   * TICKETS
-   */
+  // ================= TICKETS =================
   purchaseTicket: async (data: any) => {
     const token = localStorage.getItem("token");
 
@@ -138,9 +159,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  /**
-   * ADMIN
-   */
+  // ================= ADMIN =================
   getMetrics: async () => {
     const res = await fetch(`${API_URL}/admin/metrics`);
     return handleResponse(res);
@@ -151,9 +170,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  /**
-   * PAYMENTS
-   */
+  // ================= PAYMENTS =================
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`);
     return handleResponse(res);
@@ -166,16 +183,16 @@ export const api = {
   ) => {
     const res = await fetch(`${API_URL}/payments/verify`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ paymentId, status, reason }),
     });
 
     return handleResponse(res);
   },
 
-  /**
-   * PROFILE
-   */
+  // ================= PROFILE =================
   updateProfile: async (data: any) => {
     const token = localStorage.getItem("token");
 
@@ -191,13 +208,13 @@ export const api = {
     return handleResponse(res);
   },
 
-  /**
-   * ORGANIZERS
-   */
+  // ================= ORGANIZERS =================
   createOrganizer: async (data: any) => {
     const res = await fetch(`${API_URL}/organizers`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     });
 
@@ -205,18 +222,13 @@ export const api = {
   },
 };
 
-/**
- * =========================
- * NAMED EXPORTS (IMPORTANT)
- * =========================
- */
+// ================= EXPORTS =================
 export const login = api.login;
 export const loginWithUsernameOrEmail = api.loginWithUsernameOrEmail;
 
 export const getMe = api.getMe;
 export const logout = api.logout;
 
-export const getAllEvents = api.getAllEvents;
 export const getEvents = api.getEvents;
 export const getEvent = api.getEvent;
 
