@@ -1,8 +1,11 @@
+// =========================
+// API BASE URL
+// =========================
 const API_URL =
   import.meta.env.VITE_API_URL || "https://kistet-addis.onrender.com/api";
 
 // =========================
-// SAFE RESPONSE HANDLER (FIXED)
+// SAFE RESPONSE HANDLER
 // =========================
 async function handleResponse(res: Response) {
   const text = await res.text();
@@ -11,7 +14,7 @@ async function handleResponse(res: Response) {
   try {
     data = JSON.parse(text);
   } catch (err) {
-    console.error("❌ NON-JSON RESPONSE:", text);
+    console.error("❌ Invalid JSON response:", text);
     throw new Error("Invalid server response");
   }
 
@@ -23,15 +26,15 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN HELPER
+// TOKEN
 // =========================
 const getToken = () => localStorage.getItem("token");
 
 // =========================
-// API
+// API OBJECT
 // =========================
 export const api = {
-  // ---------------- AUTH ----------------
+  // ================= AUTH =================
   login: async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
@@ -66,15 +69,19 @@ export const api = {
 
   getMe: async () => {
     const res = await fetch(`${API_URL}/auth/me`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
     });
 
     return handleResponse(res);
   },
 
-  logout: () => localStorage.removeItem("token"),
+  logout: () => {
+    localStorage.removeItem("token");
+  },
 
-  // ---------------- EVENTS ----------------
+  // ================= EVENTS =================
   getEvents: async () => {
     const res = await fetch(`${API_URL}/events`);
     return handleResponse(res);
@@ -98,7 +105,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ---------------- UPLOAD ----------------
+  // ================= UPLOAD =================
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append("image", file);
@@ -114,7 +121,34 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ---------------- ADMIN (FIXED - AUTH ADDED) ----------------
+  // ================= TICKETS (FIXED) =================
+  purchaseTicket: async (data: any) => {
+    const res = await fetch(`${API_URL}/tickets/purchase`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
+
+  scanTicket: async (qrCode: string) => {
+    const res = await fetch(`${API_URL}/tickets/scan`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ qrCode }),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= ADMIN =================
   getMetrics: async () => {
     const res = await fetch(`${API_URL}/admin/metrics`, {
       headers: { Authorization: `Bearer ${getToken()}` },
@@ -131,7 +165,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ---------------- PAYMENTS ----------------
+  // ================= PAYMENTS =================
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`, {
       headers: { Authorization: `Bearer ${getToken()}` },
@@ -153,7 +187,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ---------------- PROFILE ----------------
+  // ================= PROFILE =================
   updateProfile: async (data: any) => {
     const res = await fetch(`${API_URL}/users/profile`, {
       method: "PUT",
@@ -167,7 +201,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ---------------- ORGANIZERS ----------------
+  // ================= ORGANIZERS =================
   createOrganizer: async (data: any) => {
     const res = await fetch(`${API_URL}/organizers`, {
       method: "POST",
@@ -207,5 +241,5 @@ export const verifyPayment = api.verifyPayment;
 export const updateProfile = api.updateProfile;
 export const createOrganizer = api.createOrganizer;
 
-// alias
+// alias (fix for old imports)
 export const getAllEvents = api.getEvents;

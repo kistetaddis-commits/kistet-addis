@@ -202,3 +202,17 @@ app.get('/api/health', (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${port}`);
 });
+app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
+  try {
+    const users = await pool.query('SELECT COUNT(*) FROM users');
+    const events = await pool.query('SELECT COUNT(*) FROM events');
+
+    res.json({
+      users: parseInt(users.rows[0].count),
+      events: parseInt(events.rows[0].count),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
