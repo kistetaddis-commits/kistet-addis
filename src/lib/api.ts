@@ -246,3 +246,4 @@ export const verifyPayment = api.verifyPayment;
 
 export const updateProfile = api.updateProfile;
 export const createOrganizer = api.createOrganizer;
+export const getAllEvents = api.getEvents;
