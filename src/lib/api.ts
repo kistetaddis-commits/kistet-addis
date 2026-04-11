@@ -26,9 +26,17 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN
+// TOKEN (FIXED)
 // =========================
-const getToken = () => localStorage.getItem("token");
+const getToken = () => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  return token;
+};
 
 // =========================
 // API OBJECT
@@ -121,7 +129,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ================= TICKETS (FIXED) =================
+  // ================= TICKETS =================
   purchaseTicket: async (data: any) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
@@ -151,7 +159,9 @@ export const api = {
   // ================= ADMIN =================
   getMetrics: async () => {
     const res = await fetch(`${API_URL}/admin/metrics`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
     });
 
     return handleResponse(res);
@@ -159,7 +169,9 @@ export const api = {
 
   getOrganizers: async () => {
     const res = await fetch(`${API_URL}/organizers`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
     });
 
     return handleResponse(res);
@@ -168,13 +180,19 @@ export const api = {
   // ================= PAYMENTS =================
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
     });
 
     return handleResponse(res);
   },
 
-  verifyPayment: async (paymentId: string, status: string, reason?: string) => {
+  verifyPayment: async (
+    paymentId: string,
+    status: string,
+    reason?: string
+  ) => {
     const res = await fetch(`${API_URL}/payments/verify`, {
       method: "POST",
       headers: {
@@ -241,5 +259,5 @@ export const verifyPayment = api.verifyPayment;
 export const updateProfile = api.updateProfile;
 export const createOrganizer = api.createOrganizer;
 
-// alias (fix for old imports)
+// alias (fix old imports)
 export const getAllEvents = api.getEvents;
