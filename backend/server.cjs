@@ -11,7 +11,7 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ---------------- SAFETY CHECK (IMPORTANT) ----------------
+// ---------------- VALIDATION ----------------
 if (!process.env.DATABASE_URL) {
   console.error("❌ DATABASE_URL is missing!");
 }
@@ -23,8 +23,6 @@ if (!process.env.JWT_SECRET) {
 // ---------------- DATABASE ----------------
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-
-  // ✅ ALWAYS ENABLE SSL FOR RENDER POSTGRESQL
   ssl: { rejectUnauthorized: false },
 });
 
@@ -33,11 +31,14 @@ pool.connect()
   .catch(err => console.error('❌ DB Error:', err.message));
 
 // ---------------- MIDDLEWARE ----------------
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: '*',
+}));
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------------- FILE UPLOAD ----------------
+// ---------------- UPLOAD CONFIG ----------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) =>
@@ -64,7 +65,9 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ---------------- LOGIN ----------------
+// =====================================================
+// 🔥 AUTH - LOGIN
+// =====================================================
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -108,12 +111,15 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// ---------------- GET EVENTS ----------------
+// =====================================================
+// 🔥 EVENTS - GET ALL
+// =====================================================
 app.get('/api/events', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM events ORDER BY event_date DESC'
     );
+
     res.json(result.rows);
   } catch (err) {
     console.error("EVENTS ERROR:", err);
@@ -121,7 +127,9 @@ app.get('/api/events', async (req, res) => {
   }
 });
 
-// ---------------- CREATE EVENT ----------------
+// =====================================================
+// 🔥 EVENTS - CREATE
+// =====================================================
 app.post('/api/events', authenticateToken, async (req, res) => {
   const {
     title,
@@ -165,20 +173,30 @@ app.post('/api/events', authenticateToken, async (req, res) => {
   }
 });
 
-// ---------------- UPLOAD ----------------
-app.post(
-  '/api/upload',
-  authenticateToken,
-  upload.single('image'),
-  (req, res) => {
+// =====================================================
+// 🔥 IMAGE UPLOAD
+// =====================================================
+app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
+  try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
     const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     res.json({ url });
+
+  } catch (err) {
+    console.error("UPLOAD ERROR:", err);
+    res.status(500).json({ message: 'Upload failed' });
   }
-);
+});
+
+// =====================================================
+// 🔥 HEALTH CHECK (IMPORTANT FOR DEBUGGING)
+// =====================================================
+app.get('/api/health', (req, res) => {
+  res.json({ status: "OK" });
+});
 
 // ---------------- START SERVER ----------------
 app.listen(port, '0.0.0.0', () => {
