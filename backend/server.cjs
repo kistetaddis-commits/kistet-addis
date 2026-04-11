@@ -11,12 +11,21 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = process.env.PORT || 5000;
 
+// ---------------- SAFETY CHECK (IMPORTANT) ----------------
+if (!process.env.DATABASE_URL) {
+  console.error("❌ DATABASE_URL is missing!");
+}
+
+if (!process.env.JWT_SECRET) {
+  console.error("❌ JWT_SECRET is missing!");
+}
+
 // ---------------- DATABASE ----------------
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }
-    : false,
+
+  // ✅ ALWAYS ENABLE SSL FOR RENDER POSTGRESQL
+  ssl: { rejectUnauthorized: false },
 });
 
 pool.connect()
@@ -37,14 +46,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// ---------------- AUTH ----------------
+// ---------------- AUTH MIDDLEWARE ----------------
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
 
-  if (!token) return res.status(401).json({ message: 'No token' });
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
 
     req.user = user;
     next();
@@ -62,10 +75,16 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     const user = result.rows[0];
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -84,7 +103,8 @@ app.post('/api/auth/login', async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -96,7 +116,8 @@ app.get('/api/events', async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("EVENTS ERROR:", err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -139,7 +160,8 @@ app.post('/api/events', authenticateToken, async (req, res) => {
     res.json(result.rows[0]);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("CREATE EVENT ERROR:", err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
