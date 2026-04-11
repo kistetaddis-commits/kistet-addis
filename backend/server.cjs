@@ -14,8 +14,6 @@ const port = process.env.PORT || 5000;
 // ---------------- DATABASE ----------------
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-
-  // ✅ FIX FOR RENDER / CLOUD POSTGRESQL SSL ERROR
   ssl: process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: false }
     : false,
@@ -26,10 +24,7 @@ pool.connect()
   .catch(err => console.error('❌ DB Error:', err.message));
 
 // ---------------- MIDDLEWARE ----------------
-app.use(cors({
-  origin: '*', // you can lock this later to your frontend URL
-}));
-
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -42,7 +37,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// ---------------- AUTH MIDDLEWARE ----------------
+// ---------------- AUTH ----------------
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
 
@@ -56,9 +51,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ---------------- ROUTES ----------------
-
-// LOGIN
+// ---------------- LOGIN ----------------
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -69,16 +62,11 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     const user = result.rows[0];
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // ✅ safer token (do NOT include full user object)
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -100,22 +88,24 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// GET EVENTS
+// ---------------- GET EVENTS ----------------
 app.get('/api/events', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events ORDER BY date DESC');
+    const result = await pool.query(
+      'SELECT * FROM events ORDER BY event_date DESC'
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// CREATE EVENT
+// ---------------- CREATE EVENT ----------------
 app.post('/api/events', authenticateToken, async (req, res) => {
   const {
     title,
     description,
-    date,
+    event_date,
     location,
     latitude,
     longitude,
@@ -128,13 +118,13 @@ app.post('/api/events', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `INSERT INTO events 
-      (title, description, date, location, latitude, longitude, price, total_tickets, event_type, selling_deadline, created_by)
+      (title, description, event_date, location, latitude, longitude, price, total_tickets, event_type, selling_deadline, created_by)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING *`,
       [
         title,
         description,
-        date,
+        event_date,
         location,
         latitude,
         longitude,
@@ -147,12 +137,13 @@ app.post('/api/events', authenticateToken, async (req, res) => {
     );
 
     res.json(result.rows[0]);
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// IMAGE UPLOAD
+// ---------------- UPLOAD ----------------
 app.post(
   '/api/upload',
   authenticateToken,
@@ -167,7 +158,7 @@ app.post(
   }
 );
 
-// ---------------- SERVER START ----------------
+// ---------------- START SERVER ----------------
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${port}`);
 });
