@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Calendar,
-  Users,
-  CheckCircle,
-  PieChart,
-  LogOut,
-  QrCode,
-  X,
-  User as UserIcon,
   Loader2,
-  Plus,
 } from 'lucide-react';
 
 import { useLanguage } from '../context/LanguageContext';
@@ -24,7 +14,7 @@ import EventCard from '../components/EventCard';
 const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { user: currentUser, refreshProfile, signOut } = useAuth();
+  const { signOut } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'events' | 'organizers' | 'profile'>('overview');
   const [pendingPayments, setPendingPayments] = useState<any[]>([]);
@@ -40,14 +30,19 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ HANDLE TOKEN ERRORS
   const handleAuthError = (err: any) => {
-    if (err.message.includes("No token") || err.message.includes("Invalid token")) {
+    if (
+      err.message?.includes("No token") ||
+      err.message?.includes("Invalid token")
+    ) {
       toast.error("Session expired. Please login again.");
       signOut();
       navigate('/login');
     }
   };
 
+  // ✅ FETCH DATA
   const fetchData = async () => {
     setLoading(true);
     setError(null);
@@ -58,30 +53,28 @@ const AdminDashboard: React.FC = () => {
           api.getMetrics(),
           api.getPendingPayments(),
         ]);
-        setMetrics(m);
-        setPendingPayments(p);
+        setMetrics(m || {});
+        setPendingPayments(p || []);
       }
 
       if (activeTab === 'payments') {
         const p = await api.getPendingPayments();
-        setPendingPayments(p);
+        setPendingPayments(p || []);
       }
 
       if (activeTab === 'events') {
         const e = await api.getEvents();
-        setEventsData(e);
+        setEventsData(e || []);
       }
 
       if (activeTab === 'organizers') {
         const o = await api.getOrganizers();
-        setOrganizers(o);
+        setOrganizers(o || []);
       }
 
     } catch (err: any) {
       console.error("❌ FETCH ERROR:", err);
-
       handleAuthError(err);
-
       setError(err.message || "Failed to load data");
     } finally {
       setLoading(false);
@@ -156,17 +149,21 @@ const AdminDashboard: React.FC = () => {
           <>
             {activeTab === 'overview' && (
               <div className="grid grid-cols-2 gap-4">
-                <div>Total Revenue: {metrics.totalRevenue}</div>
-                <div>Total Buyers: {metrics.totalBuyers}</div>
-                <div>Events: {metrics.activeEvents}</div>
-                <div>Pending: {metrics.pendingPayments}</div>
+                <div>Total Revenue: {metrics.totalRevenue || 0}</div>
+                <div>Total Buyers: {metrics.totalBuyers || 0}</div>
+                <div>Events: {metrics.activeEvents || 0}</div>
+                <div>Pending: {metrics.pendingPayments || 0}</div>
               </div>
             )}
 
             {activeTab === 'events' && (
               <div className="grid grid-cols-3 gap-4">
                 {eventsData.map((e) => (
-                  <EventCard key={e.id} event={e} />
+                  <EventCard
+                    key={e.id}
+                    event={e}
+                    onClick={() => navigate(`/event/${e.id}`)} // ✅ FIXED HERE
+                  />
                 ))}
               </div>
             )}
