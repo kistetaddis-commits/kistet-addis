@@ -1,8 +1,11 @@
 // =========================
-// API BASE URL
+// API BASE URL (FIXED)
 // =========================
 const API_URL =
   import.meta.env.VITE_API_URL || "https://kistet-addis.onrender.com/api";
+
+// Debug (VERY IMPORTANT)
+console.log("🌍 API URL:", API_URL);
 
 // =========================
 // SAFE RESPONSE HANDLER
@@ -19,6 +22,7 @@ async function handleResponse(res: Response) {
   }
 
   if (!res.ok) {
+    console.error("❌ API ERROR:", data);
     throw new Error(data.message || "API Error");
   }
 
@@ -26,13 +30,13 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN (FIXED)
+// TOKEN
 // =========================
 const getToken = () => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    throw new Error("No authentication token found");
+    throw new Error("No token provided");
   }
 
   return token;
@@ -48,22 +52,6 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
-    });
-
-    const data = await handleResponse(res);
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-    }
-
-    return data;
-  },
-
-  loginWithUsernameOrEmail: async (identifier: string, password: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: identifier, password }),
     });
 
     const data = await handleResponse(res);
@@ -91,6 +79,7 @@ export const api = {
 
   // ================= EVENTS =================
   getEvents: async () => {
+    console.log("📡 Fetching events...");
     const res = await fetch(`${API_URL}/events`);
     return handleResponse(res);
   },
@@ -130,19 +119,6 @@ export const api = {
   },
 
   // ================= TICKETS =================
-  purchaseTicket: async (data: any) => {
-    const res = await fetch(`${API_URL}/tickets/purchase`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: JSON.stringify(data),
-    });
-
-    return handleResponse(res);
-  },
-
   scanTicket: async (qrCode: string) => {
     const res = await fetch(`${API_URL}/tickets/scan`, {
       method: "POST",
@@ -188,23 +164,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  verifyPayment: async (
-    paymentId: string,
-    status: string,
-    reason?: string
-  ) => {
-    const res = await fetch(`${API_URL}/payments/verify`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: JSON.stringify({ paymentId, status, reason }),
-    });
-
-    return handleResponse(res);
-  },
-
   // ================= PROFILE =================
   updateProfile: async (data: any) => {
     const res = await fetch(`${API_URL}/users/profile`, {
@@ -236,8 +195,6 @@ export const api = {
 
 // ================= EXPORTS =================
 export const login = api.login;
-export const loginWithUsernameOrEmail = api.loginWithUsernameOrEmail;
-
 export const getMe = api.getMe;
 export const logout = api.logout;
 
@@ -247,17 +204,15 @@ export const getEvent = api.getEvent;
 export const createEvent = api.createEvent;
 export const uploadImage = api.uploadImage;
 
-export const purchaseTicket = api.purchaseTicket;
 export const scanTicket = api.scanTicket;
 
 export const getMetrics = api.getMetrics;
 export const getOrganizers = api.getOrganizers;
 
 export const getPendingPayments = api.getPendingPayments;
-export const verifyPayment = api.verifyPayment;
 
 export const updateProfile = api.updateProfile;
 export const createOrganizer = api.createOrganizer;
 
-// alias (fix old imports)
+// alias
 export const getAllEvents = api.getEvents;
