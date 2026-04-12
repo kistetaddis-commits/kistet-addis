@@ -12,14 +12,6 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ================= FIXED __dirname =================
-const __dirname = path.resolve();
-
-// ================= MIDDLEWARE =================
-app.use(cors({ origin: '*' }));
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // ================= DATABASE =================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -30,15 +22,23 @@ pool.connect()
   .then(() => console.log('✅ PostgreSQL connected'))
   .catch(err => console.error('❌ DB Error:', err.message));
 
+// ================= MIDDLEWARE =================
+app.use(cors({ origin: '*' }));
+app.use(express.json());
+
+// ✔ FIX: DO NOT USE __dirname (Render-safe)
+app.use('/uploads', express.static('uploads'));
+
 // ================= FILE UPLOAD =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) =>
     cb(null, `${Date.now()}-${uuidv4()}${path.extname(file.originalname)}`),
 });
+
 const upload = multer({ storage });
 
-// ================= AUTH =================
+// ================= AUTH MIDDLEWARE =================
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
 
@@ -55,7 +55,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ================= AUTH ROUTES =================
+// ================= AUTH =================
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -66,10 +66,14 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     const user = result.rows[0];
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -88,6 +92,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -95,7 +100,9 @@ app.post('/api/auth/login', async (req, res) => {
 // ================= EVENTS =================
 app.get('/api/events', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events ORDER BY event_date DESC');
+    const result = await pool.query(
+      'SELECT * FROM events ORDER BY event_date DESC'
+    );
     res.json(result.rows);
   } catch {
     res.status(500).json({ message: 'Server error' });
@@ -104,7 +111,10 @@ app.get('/api/events', async (req, res) => {
 
 app.get('/api/events/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
+    const result = await pool.query(
+      'SELECT * FROM events WHERE id=$1',
+      [req.params.id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Event not found' });
@@ -116,7 +126,7 @@ app.get('/api/events/:id', async (req, res) => {
   }
 });
 
-// ================= ADMIN (FIX: NO CRASH) =================
+// ================= ADMIN =================
 app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
   try {
     const users = await pool.query('SELECT COUNT(*) FROM users');
@@ -133,14 +143,10 @@ app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
   }
 });
 
-// ================= ADD THIS (FIX ERROR) =================
-// IMPORTANT: your frontend is calling this
+// ================= FIX: MISSING ROUTE =================
+// THIS FIXES YOUR ERROR: "Cannot GET /api/payments/pending"
 app.get('/api/payments/pending', authenticateToken, async (req, res) => {
-  try {
-    res.json([]); // temporary safe response
-  } catch {
-    res.status(500).json({ message: 'Server error' });
-  }
+  res.json([]); // safe placeholder
 });
 
 // ================= ORGANIZERS =================
@@ -170,7 +176,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
-// ================= START =================
+// ================= START SERVER =================
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${port}`);
 });
