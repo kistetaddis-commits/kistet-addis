@@ -1,10 +1,9 @@
 // =========================
-// API BASE URL (FIXED)
+// API BASE URL
 // =========================
 const API_URL =
   import.meta.env.VITE_API_URL || "https://kistet-addis.onrender.com/api";
 
-// Debug (VERY IMPORTANT)
 console.log("🌍 API URL:", API_URL);
 
 // =========================
@@ -63,6 +62,23 @@ export const api = {
     return data;
   },
 
+  // NEW: username/email login (FIX ERROR)
+  loginWithUsernameOrEmail: async (identifier: string, password: string) => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, password }),
+    });
+
+    const data = await handleResponse(res);
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+
+    return data;
+  },
+
   getMe: async () => {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: {
@@ -79,7 +95,6 @@ export const api = {
 
   // ================= EVENTS =================
   getEvents: async () => {
-    console.log("📡 Fetching events...");
     const res = await fetch(`${API_URL}/events`);
     return handleResponse(res);
   },
@@ -132,6 +147,24 @@ export const api = {
     return handleResponse(res);
   },
 
+  // NEW: purchaseTicket (FIX ERROR)
+  purchaseTicket: async (data: {
+    eventId: string;
+    quantity: number;
+    userId: string;
+  }) => {
+    const res = await fetch(`${API_URL}/tickets/purchase`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
+
   // ================= ADMIN =================
   getMetrics: async () => {
     const res = await fetch(`${API_URL}/admin/metrics`, {
@@ -159,6 +192,24 @@ export const api = {
       headers: {
         Authorization: `Bearer ${getToken()}`,
       },
+    });
+
+    return handleResponse(res);
+  },
+
+  // NEW: verifyPayment (FIX ERROR)
+  verifyPayment: async (
+    paymentId: string,
+    status: "verified" | "rejected",
+    reason?: string
+  ) => {
+    const res = await fetch(`${API_URL}/payments/verify/${paymentId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ status, reason }),
     });
 
     return handleResponse(res);
@@ -195,6 +246,8 @@ export const api = {
 
 // ================= EXPORTS =================
 export const login = api.login;
+export const loginWithUsernameOrEmail = api.loginWithUsernameOrEmail;
+
 export const getMe = api.getMe;
 export const logout = api.logout;
 
@@ -205,11 +258,13 @@ export const createEvent = api.createEvent;
 export const uploadImage = api.uploadImage;
 
 export const scanTicket = api.scanTicket;
+export const purchaseTicket = api.purchaseTicket;
 
 export const getMetrics = api.getMetrics;
 export const getOrganizers = api.getOrganizers;
 
 export const getPendingPayments = api.getPendingPayments;
+export const verifyPayment = api.verifyPayment;
 
 export const updateProfile = api.updateProfile;
 export const createOrganizer = api.createOrganizer;
