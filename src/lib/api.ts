@@ -1,6 +1,3 @@
-// =========================
-// API BASE URL
-// =========================
 const API_URL =
   import.meta.env.VITE_API_URL || "https://kistet-addis.onrender.com/api";
 
@@ -15,13 +12,11 @@ async function handleResponse(res: Response) {
   let data;
   try {
     data = JSON.parse(text);
-  } catch (err) {
-    console.error("❌ Invalid JSON response:", text);
-    throw new Error("Invalid server response");
+  } catch {
+    throw new Error("Invalid server response: " + text);
   }
 
   if (!res.ok) {
-    console.error("❌ API ERROR:", data);
     throw new Error(data.message || "API Error");
   }
 
@@ -29,20 +24,14 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN
+// TOKEN (SAFE VERSION)
 // =========================
 const getToken = () => {
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    throw new Error("No token provided");
-  }
-
-  return token;
+  return localStorage.getItem("token") || "";
 };
 
 // =========================
-// API OBJECT
+// API
 // =========================
 export const api = {
   // ================= AUTH =================
@@ -62,12 +51,11 @@ export const api = {
     return data;
   },
 
-  // NEW: username/email login (FIX ERROR)
   loginWithUsernameOrEmail: async (identifier: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
+      body: JSON.stringify({ email: identifier, password }),
     });
 
     const data = await handleResponse(res);
@@ -147,11 +135,16 @@ export const api = {
     return handleResponse(res);
   },
 
-  // NEW: purchaseTicket (FIX ERROR)
+  // ================= PURCHASE TICKET (FIXED) =================
   purchaseTicket: async (data: {
-    eventId: string;
+    event_id: string;
+    user_name: string;
+    phone: string;
+    email?: string;
     quantity: number;
-    userId: string;
+    method: string;
+    transaction_id: string;
+    amount: number;
   }) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
@@ -197,7 +190,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  // NEW: verifyPayment (FIX ERROR)
   verifyPayment: async (
     paymentId: string,
     status: "verified" | "rejected",
@@ -269,5 +261,4 @@ export const verifyPayment = api.verifyPayment;
 export const updateProfile = api.updateProfile;
 export const createOrganizer = api.createOrganizer;
 
-// alias
 export const getAllEvents = api.getEvents;
