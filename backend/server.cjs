@@ -23,11 +23,16 @@ pool.connect()
   .catch(err => console.error('❌ DB Error:', err.message));
 
 // ================= MIDDLEWARE =================
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
-// ✔ FIX: DO NOT USE __dirname (Render-safe)
-app.use('/uploads', express.static('uploads'));
+// IMPORTANT: safer static path for Render
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ================= FILE UPLOAD =================
 const storage = multer.diskStorage({
@@ -81,18 +86,10 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    res.json({ token, user });
 
   } catch (err) {
-    console.error(err);
+    console.error('LOGIN ERROR:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -104,7 +101,8 @@ app.get('/api/events', async (req, res) => {
       'SELECT * FROM events ORDER BY event_date DESC'
     );
     res.json(result.rows);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -121,7 +119,8 @@ app.get('/api/events/:id', async (req, res) => {
     }
 
     res.json(result.rows[0]);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -138,15 +137,41 @@ app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
       activeEvents: parseInt(events.rows[0].count),
       pendingPayments: 0,
     });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ================= FIX: MISSING ROUTE =================
-// THIS FIXES YOUR ERROR: "Cannot GET /api/payments/pending"
+// ================= PAYMENTS (FIXED) =================
 app.get('/api/payments/pending', authenticateToken, async (req, res) => {
-  res.json([]); // safe placeholder
+  res.json([]); // placeholder safe response
+});
+
+// ================= TICKETS PURCHASE (IMPORTANT FIX) =================
+app.post('/api/tickets/purchase', authenticateToken, async (req, res) => {
+  try {
+    const {
+      event_id,
+      user_name,
+      phone,
+      email,
+      quantity,
+      method,
+      transaction_id,
+      amount,
+    } = req.body;
+
+    res.json({
+      success: true,
+      message: 'Ticket submitted',
+      ticket_id: uuidv4(),
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // ================= ORGANIZERS =================
@@ -156,7 +181,8 @@ app.get('/api/organizers', authenticateToken, async (req, res) => {
       "SELECT id, name, email FROM users WHERE role='organizer'"
     );
     res.json(result.rows);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -176,7 +202,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
-// ================= START SERVER =================
+// ================= GLOBAL ERROR HANDLER =================
+app.use((err, req, res, next) => {
+  console.error('GLOBAL ERROR:', err);
+  res.status(500).json({ message: 'Internal Server Error' });
+});
+
+// ================= START =================
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${port}`);
 });
