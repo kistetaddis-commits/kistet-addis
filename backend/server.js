@@ -7,6 +7,7 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -15,22 +16,27 @@ const { Pool } = pkg;
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Fix __dirname in ES module
-import { fileURLToPath } from 'url';
+// __dirname fix
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Database
+// DB
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Middleware
+// ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Upload config
+// Force JSON response safety
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
+// ================= UPLOAD =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) =>
@@ -38,27 +44,25 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// JWT Middleware
+// ================= AUTH MIDDLEWARE =================
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) return res.sendStatus(401);
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
     req.user = user;
     next();
   });
 };
 
-const authorize = (roles) => (req, res, next) => {
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
-  next();
-};
-
-// ---------------- AUTH ----------------
-
+// ================= AUTH =================
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -69,23 +73,61 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     const user = result.rows[0];
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign(user, process.env.JWT_SECRET, {
-      expiresIn: '1d',
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // FIXED JWT (SAFE)
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
-
-    res.json({ token, user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ---------------- EVENTS ----------------
+// ================= GET ME =================
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role FROM users WHERE id = $1',
+      [req.user.id]
+    );
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ================= EVENTS =================
 app.get('/api/events', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM events');
@@ -95,6 +137,27 @@ app.get('/api/events', async (req, res) => {
   }
 });
 
+// ✅ FIX: GET SINGLE EVENT (THIS WAS MISSING)
+app.get('/api/events/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'SELECT * FROM events WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// CREATE EVENT
 app.post('/api/events', authenticateToken, async (req, res) => {
   const {
     title,
@@ -136,15 +199,13 @@ app.post('/api/events', authenticateToken, async (req, res) => {
   }
 });
 
-// ---------------- IMAGE UPLOAD ----------------
-
+// ================= UPLOAD =================
 app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
   const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   res.json({ url });
 });
 
-// ---------------- SERVER ----------------
-
+// ================= START SERVER =================
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });

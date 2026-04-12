@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const express = require('express');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
@@ -11,16 +12,18 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ---------------- VALIDATION ----------------
+// ================= FIX: __dirname =================
+const __dirname = path.resolve();
+
+// ================= VALIDATION =================
 if (!process.env.DATABASE_URL) {
   console.error("❌ DATABASE_URL is missing!");
 }
-
 if (!process.env.JWT_SECRET) {
   console.error("❌ JWT_SECRET is missing!");
 }
 
-// ---------------- DATABASE ----------------
+// ================= DATABASE =================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -30,12 +33,12 @@ pool.connect()
   .then(() => console.log('✅ PostgreSQL connected'))
   .catch(err => console.error('❌ DB Error:', err.message));
 
-// ---------------- MIDDLEWARE ----------------
+// ================= MIDDLEWARE =================
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ---------------- FILE UPLOAD ----------------
+// ================= FILE UPLOAD =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) =>
@@ -43,14 +46,18 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ---------------- AUTH MIDDLEWARE ----------------
+// ================= AUTH MIDDLEWARE =================
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
 
-  if (!token) return res.status(401).json({ message: 'No token provided' });
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
     req.user = user;
     next();
   });
@@ -71,13 +78,21 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     const user = result.rows[0];
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -106,8 +121,12 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       [req.user.id]
     );
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     res.json(result.rows[0]);
-  } catch {
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -116,7 +135,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 // EVENTS
 // =====================================================
 
-// GET EVENTS
+// GET ALL EVENTS
 app.get('/api/events', async (req, res) => {
   try {
     const result = await pool.query(
@@ -125,6 +144,24 @@ app.get('/api/events', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error("EVENTS ERROR:", err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET SINGLE EVENT (IMPORTANT FIX)
+app.get('/api/events/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM events WHERE id=$1',
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -176,7 +213,6 @@ app.post('/api/events', authenticateToken, async (req, res) => {
 // ADMIN
 // =====================================================
 
-// METRICS (FIXED FORMAT)
 app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
   try {
     const users = await pool.query('SELECT COUNT(*) FROM users');
@@ -186,10 +222,10 @@ app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
       totalRevenue: 0,
       totalBuyers: parseInt(users.rows[0].count),
       activeEvents: parseInt(events.rows[0].count),
-      pendingPayments: 0
+      pendingPayments: 0,
     });
-  } catch {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -197,20 +233,18 @@ app.get('/api/admin/metrics', authenticateToken, async (req, res) => {
 // ORGANIZERS
 // =====================================================
 
-// GET ORGANIZERS
 app.get('/api/organizers', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT id, name, email FROM users WHERE role='organizer'"
     );
     res.json(result.rows);
-  } catch {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// CREATE ORGANIZER
-app.post('/api/organizers', async (req, res) => {
+app.post('/api/organizers', authenticateToken, async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
@@ -224,8 +258,8 @@ app.post('/api/organizers', async (req, res) => {
     );
 
     res.json(result.rows[0]);
-  } catch {
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -251,7 +285,7 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
     }
 
     res.json({ message: 'Profile updated' });
-  } catch {
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -260,12 +294,12 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
 // TICKETS (MOCK)
 // =====================================================
 
-app.post('/api/tickets/scan', authenticateToken, async (req, res) => {
+app.post('/api/tickets/scan', authenticateToken, (req, res) => {
   const { qrCode } = req.body;
 
   res.json({
     success: true,
-    message: `Ticket ${qrCode} is valid ✅`
+    message: `Ticket ${qrCode} is valid ✅`,
   });
 });
 
@@ -283,7 +317,7 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) =>
 });
 
 // =====================================================
-// HEALTH
+// HEALTH CHECK
 // =====================================================
 
 app.get('/api/health', (req, res) => {
