@@ -5,16 +5,11 @@ import {
   ChevronRight,
   ChevronLeft,
   Smartphone,
-  Banknote,
-  CheckCircle2,
-  Loader2,
-  Calendar,
-  MapPin,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'sonner';
@@ -47,10 +42,8 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
 
   const totalPrice = quantity * (event.price || 0);
 
-  // ================= NEXT STEP =================
   const handleNext = () => {
     if (step === 'quantity') setStep('details');
-
     else if (step === 'details') {
       if (!formData.name || !formData.phone) {
         toast.error('Please fill required fields');
@@ -60,13 +53,12 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
     }
   };
 
-  // ================= BACK =================
   const handleBack = () => {
     if (step === 'details') setStep('quantity');
     else if (step === 'payment') setStep('details');
   };
 
-  // ================= SUBMIT =================
+  // ✅ FIXED API CALL (MATCH BACKEND)
   const handleSubmitPayment = async () => {
     if (!formData.transactionId) {
       toast.error('Enter transaction ID');
@@ -76,12 +68,15 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
     setIsSubmitting(true);
 
     try {
-      const user = await api.getMe(); // get logged-in user
-
       await api.purchaseTicket({
-        eventId: event.id,          // ✅ FIXED
-        userId: user.id,            // ✅ FIXED
+        event_id: event.id,
+        user_name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
         quantity,
+        method: paymentMethod,
+        transaction_id: formData.transactionId,
+        amount: totalPrice,
       });
 
       setStep('confirmation');
@@ -93,23 +88,22 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
     }
   };
 
-  // ================= UI =================
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
 
       {/* BACKDROP */}
       <motion.div
+        className="absolute inset-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="absolute inset-0"
         onClick={onClose}
       />
 
       {/* CARD */}
       <motion.div
+        className="relative bg-white w-full max-w-2xl rounded-3xl p-6 z-10"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative bg-white w-full max-w-2xl rounded-3xl p-6 z-10"
       >
 
         {/* CLOSE */}
@@ -117,70 +111,53 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
           <X />
         </button>
 
-        {/* HEADER */}
+        {/* TITLE */}
         <div className="mb-6">
           <h2 className="text-xl font-bold">{event.title}</h2>
           <p className="text-sm text-gray-500">
-            {event.location} • {new Date(event.date).toLocaleDateString()}
+            {event.location} • {new Date(event.event_date || event.date).toLocaleDateString()}
           </p>
         </div>
 
-        {/* STEP: QUANTITY */}
+        {/* STEP 1 */}
         {step === 'quantity' && (
           <div>
             <h3 className="font-bold mb-4">Select Quantity</h3>
-
             <div className="flex items-center gap-4">
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>
-                -
-              </button>
-
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
               <span className="text-2xl font-bold">{quantity}</span>
-
-              <button onClick={() => setQuantity(quantity + 1)}>
-                +
-              </button>
+              <button onClick={() => setQuantity(quantity + 1)}>+</button>
             </div>
           </div>
         )}
 
-        {/* STEP: DETAILS */}
+        {/* STEP 2 */}
         {step === 'details' && (
           <div className="space-y-4">
             <Input
               placeholder="Full Name"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
-
             <Input
               placeholder="Phone"
               value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
-
             <Input
-              placeholder="Email (optional)"
+              placeholder="Email"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
           </div>
         )}
 
-        {/* STEP: PAYMENT */}
+        {/* STEP 3 */}
         {step === 'payment' && (
           <div className="space-y-4">
 
             <div className="flex gap-2">
-              <button onClick={() => setPaymentMethod('Telebirr')}>
-                Telebirr
-              </button>
+              <button onClick={() => setPaymentMethod('Telebirr')}>Telebirr</button>
               <button onClick={() => setPaymentMethod('CBE')}>CBE</button>
               <button onClick={() => setPaymentMethod('M-Pesa')}>M-Pesa</button>
             </div>
@@ -195,7 +172,7 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
           </div>
         )}
 
-        {/* STEP: CONFIRMATION */}
+        {/* STEP 4 */}
         {step === 'confirmation' && (
           <div className="text-center py-10">
             <CheckCircle className="mx-auto text-green-500 w-16 h-16" />
@@ -204,7 +181,7 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
           </div>
         )}
 
-        {/* FOOTER BUTTONS */}
+        {/* BUTTONS */}
         {step !== 'confirmation' && (
           <div className="flex justify-between mt-6">
 
@@ -215,16 +192,10 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
             )}
 
             <Button
-              onClick={
-                step === 'payment'
-                  ? handleSubmitPayment
-                  : handleNext
-              }
+              onClick={step === 'payment' ? handleSubmitPayment : handleNext}
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <Loader2 className="animate-spin" />
-              ) : (
+              {isSubmitting ? <Loader2 className="animate-spin" /> : (
                 <>
                   Continue <ChevronRight />
                 </>

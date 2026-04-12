@@ -1,30 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Check,
-  CreditCard,
-  ChevronRight,
-  Download,
-  Phone,
-  User as UserIcon,
-  Mail,
-  Hash,
-  Clock,
   ArrowLeft,
   Loader2,
-  Smartphone,
-  Building2
+  Clock
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { QRCodeSVG } from 'qrcode.react';
-import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { PaymentMethod, Event, PurchaseFormData } from '../types';
+import { Event, PaymentMethod } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Step = 1 | 2 | 3 | 4;
-const STORAGE_KEY = 'kistet_purchase_state';
+type Step = 1 | 2 | 3;
 
 const PurchaseFlow: React.FC = () => {
   const { id } = useParams();
@@ -36,25 +23,24 @@ const PurchaseFlow: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState<PurchaseFormData>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.formData || { fullName: '', phone: '', email: '', quantity: 1 };
-      } catch {}
-    }
-    return { fullName: '', phone: '', email: '', quantity: 1 };
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    quantity: 1,
   });
 
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('Telebirr');
+  const [selectedMethod, setSelectedMethod] =
+    useState<PaymentMethod>('Telebirr');
+
   const [transactionId, setTransactionId] = useState('');
-  const [currentTicketId, setCurrentTicketId] = useState<string | null>(null);
+  const [ticketId, setTicketId] = useState<string | null>(null);
 
   // ================= LOAD EVENT =================
   useEffect(() => {
-    const init = async () => {
+    const load = async () => {
       if (!id) return;
+
       try {
         const ev = await api.getEvent(id);
         setEvent(ev);
@@ -64,14 +50,15 @@ const PurchaseFlow: React.FC = () => {
         setLoading(false);
       }
     };
-    init();
+
+    load();
   }, [id]);
 
-  // ================= STEP HANDLER =================
+  // ================= NEXT =================
   const handleNext = async () => {
     if (step === 1) {
       if (!formData.fullName || !formData.phone) {
-        toast.error('Please fill required fields');
+        toast.error('Fill required fields');
         return;
       }
       setStep(2);
@@ -88,13 +75,19 @@ const PurchaseFlow: React.FC = () => {
 
       try {
         const res = await api.purchaseTicket({
-          eventId: id!,            // ✅ FIXED HERE
-          userId: "current-user",  // ⚠️ replace with real auth user id
+          event_id: id!,                       // ✅ FIXED
+          user_name: formData.fullName,       // ✅ FIXED
+          phone: formData.phone,
+          email: formData.email,
           quantity: formData.quantity,
+          method: selectedMethod,
+          transaction_id: transactionId,
+          amount: formData.quantity * (event?.price || 0),
         });
 
-        setCurrentTicketId(res.ticket_id);
+        setTicketId(res.ticket_id);
         setStep(3);
+
         toast.success('Payment submitted');
       } catch (err: any) {
         toast.error(err.message || 'Error');
@@ -114,17 +107,18 @@ const PurchaseFlow: React.FC = () => {
   }
 
   if (!event) {
-    return <div className="text-center p-10">Event not found</div>;
+    return <div className="p-10 text-center">Event not found</div>;
   }
 
   // ================= UI =================
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl overflow-hidden">
 
         {/* HEADER */}
-        <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="font-bold text-lg">{event.title}</h2>
+        <div className="p-6 border-b flex justify-between">
+          <h2 className="font-bold">{event.title}</h2>
+
           {step < 3 && (
             <button onClick={() => navigate(-1)}>
               <ArrowLeft />
@@ -132,19 +126,13 @@ const PurchaseFlow: React.FC = () => {
           )}
         </div>
 
-        {/* STEP CONTENT */}
+        {/* CONTENT */}
         <div className="p-6">
-
           <AnimatePresence mode="wait">
 
             {/* STEP 1 */}
             {step === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.div key="step1">
                 <input
                   placeholder="Full Name"
                   value={formData.fullName}
@@ -165,6 +153,7 @@ const PurchaseFlow: React.FC = () => {
 
                 <input
                   type="number"
+                  min={1}
                   value={formData.quantity}
                   onChange={(e) =>
                     setFormData({
@@ -175,17 +164,13 @@ const PurchaseFlow: React.FC = () => {
                   className="input"
                 />
 
-                <button onClick={handleNext} className="btn">
-                  Next
-                </button>
+                <button onClick={handleNext}>Next</button>
               </motion.div>
             )}
 
             {/* STEP 2 */}
             {step === 2 && (
               <motion.div key="step2">
-                <p>Select payment method</p>
-
                 <select
                   value={selectedMethod}
                   onChange={(e) =>
@@ -214,7 +199,7 @@ const PurchaseFlow: React.FC = () => {
               <motion.div key="step3" className="text-center">
                 <Clock className="mx-auto" />
                 <h2>Waiting for approval</h2>
-                <p>{transactionId}</p>
+                <p className="font-mono">{ticketId}</p>
 
                 <button onClick={() => navigate('/')}>
                   Go Home
