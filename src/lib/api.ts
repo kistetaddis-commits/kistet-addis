@@ -24,10 +24,19 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN (SAFE VERSION)
+// TOKEN (FIXED)
 // =========================
 const getToken = () => {
-  return localStorage.getItem("token") || "";
+  const token = localStorage.getItem("token");
+  return token && token !== "null" && token !== "undefined" ? token : null;
+};
+
+// =========================
+// AUTH HEADER HELPER (NEW)
+// =========================
+const authHeader = () => {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 // =========================
@@ -70,7 +79,7 @@ export const api = {
   getMe: async () => {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: {
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
     });
 
@@ -97,7 +106,7 @@ export const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(), // ✅ FIXED
       },
       body: JSON.stringify(data),
     });
@@ -113,7 +122,7 @@ export const api = {
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(), // ✅ FIXED
       },
       body: formData,
     });
@@ -127,7 +136,7 @@ export const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
       body: JSON.stringify({ qrCode }),
     });
@@ -135,22 +144,12 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ================= PURCHASE TICKET (FIXED) =================
-  purchaseTicket: async (data: {
-    event_id: string;
-    user_name: string;
-    phone: string;
-    email?: string;
-    quantity: number;
-    method: string;
-    transaction_id: string;
-    amount: number;
-  }) => {
+  purchaseTicket: async (data: any) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
       body: JSON.stringify(data),
     });
@@ -162,7 +161,7 @@ export const api = {
   getMetrics: async () => {
     const res = await fetch(`${API_URL}/admin/metrics`, {
       headers: {
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
     });
 
@@ -172,7 +171,7 @@ export const api = {
   getOrganizers: async () => {
     const res = await fetch(`${API_URL}/organizers`, {
       headers: {
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
     });
 
@@ -183,7 +182,7 @@ export const api = {
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`, {
       headers: {
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
     });
 
@@ -199,7 +198,7 @@ export const api = {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
       body: JSON.stringify({ status, reason }),
     });
@@ -213,7 +212,7 @@ export const api = {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
       body: JSON.stringify(data),
     });
@@ -227,7 +226,7 @@ export const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
+        ...authHeader(),
       },
       body: JSON.stringify(data),
     });
