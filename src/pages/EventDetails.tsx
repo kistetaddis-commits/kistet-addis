@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Calendar, MapPin, Clock, Share2, ArrowLeft, Ticket, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Share2, ArrowLeft, Ticket, CheckCircle2, ExternalLink } from 'lucide-react';
 import { MOCK_EVENTS } from '../lib/mockData';
 import { Event } from '../types';
 import TicketPurchaseFlow from '../components/TicketPurchaseFlow';
@@ -33,6 +33,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
   const handleShare = () => {
     const title = getLocalized(event.title);
     const description = getLocalized(event.description);
+
     if (navigator.share) {
       navigator.share({
         title,
@@ -78,27 +79,37 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
 
       <div className="container mx-auto px-4 -mt-10 relative z-10 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900 border-b pb-4">{t('aboutEvent')}</h2>
+              <h2 className="text-2xl font-bold mb-6 text-gray-900 border-b pb-4">
+                {t('aboutEvent')}
+              </h2>
+
               <p className="text-gray-600 leading-relaxed text-lg mb-8">
                 {getLocalized(event.description)}
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
                 <div className="flex items-start gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
                     <Calendar className="w-6 h-6" />
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">{t('date')}</h4>
-                    <p className="text-gray-600">{new Date(event.date).toLocaleDateString(language === 'en' ? 'en-US' : 'am-ET', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p className="text-gray-600">
+                      {new Date(event.date).toLocaleDateString(
+                        language === 'en' ? 'en-US' : 'am-ET',
+                        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+                      )}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 md:col-span-2">
-                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-gray-600 shrink-0">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-gray-600">
                     <MapPin className="w-6 h-6" />
                   </div>
                   <div>
@@ -109,9 +120,11 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
                     </button>
                   </div>
                 </div>
+
               </div>
             </div>
 
+            {/* Organizer */}
             <div className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100">
               <h3 className="text-xl font-bold mb-4">{t('organizer')}</h3>
               <div className="flex items-center gap-4">
@@ -120,7 +133,9 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
                 </div>
                 <div>
                   <h4 className="font-bold text-lg">Kistet Addis Productions</h4>
-                  <p className="text-gray-500 text-sm">Organizing top-tier events since 2018</p>
+                  <p className="text-gray-500 text-sm">
+                    Organizing top-tier events since 2018
+                  </p>
                 </div>
               </div>
             </div>
@@ -130,9 +145,17 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 ring-4 ring-blue-50">
+
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-gray-500 font-medium">{t('standardTicket')}</span>
-                  <span className="text-3xl font-extrabold text-blue-600">{event.ticket_price} <span className="text-sm font-medium text-gray-400">ETB</span></span>
+                  <span className="text-gray-500 font-medium">
+                    {t('standardTicket')}
+                  </span>
+
+                  {/* ✅ FIXED HERE */}
+                  <span className="text-3xl font-extrabold text-blue-600">
+                    {event.price ?? 0}
+                    <span className="text-sm font-medium text-gray-400"> ETB</span>
+                  </span>
                 </div>
                 
                 <ul className="space-y-4 mb-8">
@@ -152,21 +175,21 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
 
                 <button 
                   onClick={() => setShowPurchase(true)}
-                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-600/20 active:scale-95"
+                  className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
                 >
                   <Ticket className="w-6 h-6" />
                   {t('buyTicket')}
                 </button>
 
-                {/* Added Limited Tickets Message */}
                 <div className="mt-4 p-4 bg-orange-50 rounded-2xl border border-orange-100 flex gap-3">
-                  <div className="w-8 h-8 bg-orange-500 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-xs">
+                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
                     !
                   </div>
                   <p className="text-xs text-orange-800 font-medium">
                     {t('limited_tickets_msg')}
                   </p>
                 </div>
+
               </div>
 
               <div className="flex items-center justify-center gap-4">
@@ -177,8 +200,10 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
                   <Share2 className="w-5 h-5" /> {t('shareEvent')}
                 </button>
               </div>
+
             </div>
           </div>
+
         </div>
       </div>
 
