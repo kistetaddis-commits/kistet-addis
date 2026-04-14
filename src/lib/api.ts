@@ -1,38 +1,49 @@
-const API_URL =
-  import.meta.env.VITE_API_URL || "https://kistet-addis.onrender.com/api";
+const RAW_API_URL =
+  import.meta.env.VITE_API_URL || "https://kistet-addis.onrender.com";
+
+// ✅ ensure no double /api
+const API_URL = RAW_API_URL.endsWith("/api")
+  ? RAW_API_URL
+  : `${RAW_API_URL}/api`;
 
 console.log("🌍 API URL:", API_URL);
 
 // =========================
-// SAFE RESPONSE HANDLER
+// SAFE RESPONSE HANDLER (FIXED)
 // =========================
 async function handleResponse(res: Response) {
   const text = await res.text();
 
-  let data;
+  let data: any = null;
+
   try {
-    data = JSON.parse(text);
+    data = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error("Invalid server response: " + text);
+    // 🚨 IMPORTANT FIX:
+    // backend returned HTML (500 error page)
+    throw new Error(
+      "Server returned non-JSON response:\n" + text.slice(0, 200)
+    );
   }
 
   if (!res.ok) {
-    throw new Error(data.message || "API Error");
+    throw new Error(data?.message || "API Error");
   }
 
   return data;
 }
 
 // =========================
-// TOKEN (FIXED)
+// TOKEN
 // =========================
 const getToken = () => {
   const token = localStorage.getItem("token");
-  return token && token !== "null" && token !== "undefined" ? token : null;
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
 };
 
 // =========================
-// AUTH HEADER HELPER (NEW)
+// AUTH HEADER
 // =========================
 const authHeader = () => {
   const token = getToken();
@@ -53,9 +64,7 @@ export const api = {
 
     const data = await handleResponse(res);
 
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-    }
+    if (data.token) localStorage.setItem("token", data.token);
 
     return data;
   },
@@ -69,18 +78,14 @@ export const api = {
 
     const data = await handleResponse(res);
 
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-    }
+    if (data.token) localStorage.setItem("token", data.token);
 
     return data;
   },
 
   getMe: async () => {
     const res = await fetch(`${API_URL}/auth/me`, {
-      headers: {
-        ...authHeader(),
-      },
+      headers: { ...authHeader() },
     });
 
     return handleResponse(res);
@@ -106,7 +111,7 @@ export const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...authHeader(), // ✅ FIXED
+        ...authHeader(),
       },
       body: JSON.stringify(data),
     });
@@ -122,7 +127,7 @@ export const api = {
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
       headers: {
-        ...authHeader(), // ✅ FIXED
+        ...authHeader(),
       },
       body: formData,
     });
@@ -160,9 +165,7 @@ export const api = {
   // ================= ADMIN =================
   getMetrics: async () => {
     const res = await fetch(`${API_URL}/admin/metrics`, {
-      headers: {
-        ...authHeader(),
-      },
+      headers: { ...authHeader() },
     });
 
     return handleResponse(res);
@@ -170,9 +173,7 @@ export const api = {
 
   getOrganizers: async () => {
     const res = await fetch(`${API_URL}/organizers`, {
-      headers: {
-        ...authHeader(),
-      },
+      headers: { ...authHeader() },
     });
 
     return handleResponse(res);
@@ -181,9 +182,7 @@ export const api = {
   // ================= PAYMENTS =================
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`, {
-      headers: {
-        ...authHeader(),
-      },
+      headers: { ...authHeader() },
     });
 
     return handleResponse(res);

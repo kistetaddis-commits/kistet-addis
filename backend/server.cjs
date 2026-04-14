@@ -7,10 +7,17 @@ const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// ================= ENSURE UPLOADS FOLDER =================
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 
 // ================= DATABASE =================
 const pool = new Pool({
@@ -36,20 +43,18 @@ app.use(
 );
 
 app.use(express.json());
-
-// STATIC FILES
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadDir));
 
 // ================= FILE UPLOAD =================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) =>
     cb(null, `${Date.now()}-${uuidv4()}${path.extname(file.originalname)}`),
 });
 
 const upload = multer({ storage });
 
-// ================= AUTH MIDDLEWARE =================
+// ================= AUTH =================
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -67,7 +72,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ================= AUTH =================
+// ================= LOGIN =================
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -78,14 +83,10 @@ app.post("/api/auth/login", async (req, res) => {
     );
 
     const user = result.rows[0];
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -115,9 +116,10 @@ app.get("/api/events", async (req, res) => {
 
 app.get("/api/events/:id", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM events WHERE id=$1", [
-      req.params.id,
-    ]);
+    const result = await pool.query(
+      "SELECT * FROM events WHERE id=$1",
+      [req.params.id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Event not found" });
@@ -127,6 +129,59 @@ app.get("/api/events/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ================= ✅ CREATE EVENT (FIXED - IMPORTANT) =================
+app.post("/api/events", authenticateToken, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      date,
+      location,
+      latitude,
+      longitude,
+      price,
+      total_tickets,
+      selling_deadline,
+      event_type,
+      image_url,
+    } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO events (
+        id, title, description, event_date,
+        location, latitude, longitude,
+        ticket_price, total_tickets,
+        selling_deadline, event_type,
+        image_url, created_by
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING *`,
+      [
+        uuidv4(),
+        title,
+        description,
+        date,
+        location,
+        latitude,
+        longitude,
+        price,
+        total_tickets,
+        selling_deadline,
+        event_type,
+        image_url,
+        req.user.id,
+      ]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("CREATE EVENT ERROR:", err.message);
+    res.status(500).json({
+      message: "Failed to create event",
+      error: err.message,
+    });
   }
 });
 
@@ -149,7 +204,6 @@ app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
 });
 
 // ================= PAYMENTS =================
-// FIXED: now properly returns DB-ready structure
 app.get("/api/payments/pending", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
@@ -158,12 +212,12 @@ app.get("/api/payments/pending", authenticateToken, async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error("PAYMENTS ERROR:", err);
+    console.error("PAYMENTS ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ================= TICKETS PURCHASE =================
+// ================= TICKETS =================
 app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
   try {
     const {
@@ -179,7 +233,9 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
 
     await pool.query(
       `INSERT INTO tickets (
-        id, event_id, user_name, phone, email, quantity, method, transaction_id, amount, status
+        id, event_id, user_name, phone,
+        email, quantity, method,
+        transaction_id, amount, status
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
       [
         uuidv4(),
@@ -194,12 +250,9 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       ]
     );
 
-    res.json({
-      success: true,
-      message: "Ticket submitted",
-    });
+    res.json({ success: true, message: "Ticket submitted" });
   } catch (err) {
-    console.error(err);
+    console.error("TICKET ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -227,10 +280,7 @@ app.post(
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const url = `${req.protocol}://${req.get("host")}/uploads/${
-      req.file.filename
-    }`;
-
+    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     res.json({ url });
   }
 );
