@@ -488,9 +488,7 @@ const CreateEventPage: React.FC = () => {
                                 className="pl-12 rounded-xl py-6 bg-gray-50 border-gray-100 font-bold" 
                                 {...field}
                                 value={field.value as number}
-                                onChange={(e) =>
-                               field.onChange(e.target.value === '' ? 0 : Number(e.target.value))
-                                  }
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
                               />
                             </div>
                           </FormControl>
@@ -513,9 +511,7 @@ const CreateEventPage: React.FC = () => {
                                 className="pl-12 rounded-xl py-6 bg-gray-50 border-gray-100 font-bold" 
                                 {...field}
                                 value={field.value as number}
-                                onChange={(e) =>
-  field.onChange(e.target.value === '' ? 1 : parseInt(e.target.value, 10))
-}
+                                onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
                               />
                             </div>
                           </FormControl>
