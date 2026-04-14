@@ -107,18 +107,20 @@ const CreateEventPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<EventFormValues>({
-    resolver: zodResolver(eventSchema) as any,
-    defaultValues: {
-      title: '',
-      description: '',
-      location: '',
-      latitude: 9.03,
-      longitude: 38.74,
-      total_tickets: 100,
-      ticket_price: 0,
-      event_type: 'Conference',
-    },
-  });
+  resolver: zodResolver(eventSchema) as any,
+  defaultValues: {
+    title: '',
+    description: '',
+    date: new Date(), // ✅ ADD THIS
+    selling_deadline: new Date(Date.now() + 86400000), // ✅ ADD THIS
+    location: '',
+    latitude: 9.03,
+    longitude: 38.74,
+    total_tickets: 100,
+    ticket_price: 0,
+    event_type: 'Conference',
+  },
+});
 
   const onLocationSelected = useCallback(async (pos: [number, number]) => {
     setMapPosition(pos);
@@ -148,42 +150,46 @@ const CreateEventPage: React.FC = () => {
     }
   };
 
-  async function handleOnSubmit(values: EventFormValues) {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    
-    try {
-      let imageUrl = 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=1200';
-      
-      if (imageFile) {
-        const uploadRes = await api.uploadImage(imageFile);
-        imageUrl = uploadRes.url;
-      }
+ async function handleOnSubmit(values: EventFormValues) {
+  if (isSubmitting) return;
+  setIsSubmitting(true);
 
-      await api.createEvent({
-        title: values.title,
-        description: values.description,
-        date: values.date.toISOString(),
-        location: values.location,
-        latitude: values.latitude,
-        longitude: values.longitude,
-        price: values.ticket_price,
-        total_tickets: values.total_tickets,
-        selling_deadline: values.selling_deadline.toISOString(),
-        event_type: values.event_type,
-        image_url: imageUrl
-      });
+  try {
+    let imageUrl =
+      'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=1200';
 
-      toast.success('Event created successfully!');
-      navigate('/admin/dashboard');
-    } catch (error: any) {
-      console.error('CreateEventPage: Error creating event:', error);
-      toast.error(error.message || 'Failed to create event. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (imageFile) {
+      const uploadRes = await api.uploadImage(imageFile);
+      imageUrl = uploadRes.url;
     }
-  }
 
+    const payload = {
+      title: values.title,
+      description: values.description,
+      date: values.date?.toISOString(),
+      location: values.location,
+      latitude: Number(values.latitude),
+      longitude: Number(values.longitude),
+      price: Number(values.ticket_price),
+      total_tickets: Number(values.total_tickets),
+      selling_deadline: values.selling_deadline?.toISOString(),
+      event_type: values.event_type,
+      image_url: imageUrl,
+    };
+
+    console.log("📦 EVENT PAYLOAD:", payload);
+
+    await api.createEvent(payload);
+
+    toast.success('Event created successfully!');
+    navigate('/admin/dashboard');
+  } catch (error: any) {
+    console.error(error);
+    toast.error(error.message || 'Failed to create event');
+  } finally {
+    setIsSubmitting(false);
+  }
+}
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -482,7 +488,9 @@ const CreateEventPage: React.FC = () => {
                                 className="pl-12 rounded-xl py-6 bg-gray-50 border-gray-100 font-bold" 
                                 {...field}
                                 value={field.value as number}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                onChange={(e) =>
+                               field.onChange(e.target.value === '' ? 0 : Number(e.target.value))
+                                  }
                               />
                             </div>
                           </FormControl>
@@ -505,7 +513,9 @@ const CreateEventPage: React.FC = () => {
                                 className="pl-12 rounded-xl py-6 bg-gray-50 border-gray-100 font-bold" 
                                 {...field}
                                 value={field.value as number}
-                                onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                                onChange={(e) =>
+  field.onChange(e.target.value === '' ? 1 : parseInt(e.target.value, 10))
+}
                               />
                             </div>
                           </FormControl>
