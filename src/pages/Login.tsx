@@ -6,11 +6,7 @@ import { loginWithUsernameOrEmail } from "../lib/api";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-interface LoginProps {
-  onLogin?: (role: 'admin' | 'organizer') => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,55 +16,52 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isNavigating = useRef(false);
+  const redirectedRef = useRef(false);
 
-  const performRedirect = useCallback(
-    (user: any) => {
-      if (!user || isNavigating.current) return;
+  const redirectUser = useCallback((user: any) => {
+    if (!user || redirectedRef.current) return;
 
-      const role = user.role || 'organizer';
+    const role = user.role || 'organizer';
 
-      const from =
-        (location.state as any)?.from ||
-        (role === 'admin' ? '/admin/dashboard' : '/scanner');
+    const from =
+      (location.state as any)?.from ||
+      (role === 'admin' ? '/admin/dashboard' : '/scanner');
 
-      isNavigating.current = true;
-
-      navigate(from, { replace: true });
-
-      if (onLogin) onLogin(role);
-    },
-    [navigate, location.state, onLogin]
-  );
+    redirectedRef.current = true;
+    navigate(from, { replace: true });
+  }, [navigate, location.state]);
 
   useEffect(() => {
-    if (!authLoading && authUser && !isNavigating.current) {
-      performRedirect(authUser);
+    if (!authLoading && authUser && !redirectedRef.current) {
+      redirectUser(authUser);
     }
-  }, [authUser, authLoading, performRedirect]);
+  }, [authUser, authLoading, redirectUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (loading) return;
+
     setLoading(true);
 
     try {
       const result = await loginWithUsernameOrEmail(identifier, password);
 
-      const user = result?.user;
-      const error = result?.error;
-
-      if (error || !user) {
-        toast.error(error || 'Invalid credentials');
+      if (!result || result.error || !result.user) {
+        toast.error(result?.error || 'Invalid credentials');
         setLoading(false);
         return;
       }
 
-      setUser(user);
-      toast.success(`Welcome back, ${user.name || 'User'}!`);
+      setUser(result.user);
 
-    } catch (err) {
+      toast.success(`Welcome back, ${result.user.name || 'User'}!`);
+
+      // 🔥 IMPORTANT: force redirect immediately
+      redirectUser(result.user);
+
+    } catch (err: any) {
+      console.error("LOGIN ERROR:", err);
       toast.error('Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -87,7 +80,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-20 bg-gray-50">
       <div className="bg-white p-8 md:p-12 rounded-[2rem] shadow-xl w-full max-w-md border border-gray-100">
 
-        <div className="text-center mb-10 flex flex-col items-center">
+        <div className="text-center mb-10">
           <h2 className="text-3xl font-black text-gray-900">Staff Portal</h2>
           <p className="text-gray-500 mt-2 font-medium">
             Login to manage events and tickets
