@@ -3,37 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Ticket as TicketIcon,
-  CreditCard,
-  CheckCircle2,
-  Smartphone,
-  Building,
-  ArrowRight,
   Clock,
-  ExternalLink,
-  Phone,
-  User as UserIcon,
-  Mail,
-  RefreshCw,
-  Download,
+  CheckCircle2,
   X
 } from 'lucide-react';
-
+import { useLanguage } from '../context/LanguageContext';
 import { api } from '../lib/api';
-import { Event, PaymentMethod, Ticket } from '../types';
+import { Event, PaymentMethod } from '../types';
 import { toast } from 'sonner';
 import TicketQR from '../components/TicketQR';
-import { jsPDF } from 'jspdf';
 
 const PurchaseFlow: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [event, setEvent] = useState<Event | null>(null);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState(1);
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -46,17 +35,17 @@ const PurchaseFlow: React.FC = () => {
     useState<PaymentMethod>('Telebirr');
 
   const [transactionId, setTransactionId] = useState('');
-  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [ticket, setTicket] = useState<any>(null);
 
   // ================= LOAD EVENT =================
   useEffect(() => {
-    const load = async () => {
+    const loadEvent = async () => {
       if (!id) return;
 
       try {
-        const data = await api.getEvent(id); // ✅ FIXED
+        const data = await api.getEvent(id);
         setEvent(data);
-      } catch (err) {
+      } catch {
         toast.error('Event not found');
         navigate('/');
       } finally {
@@ -64,107 +53,76 @@ const PurchaseFlow: React.FC = () => {
       }
     };
 
-    load();
-  }, [id]);
+    loadEvent();
+  }, [id, navigate]);
 
   // ================= STEP 1 =================
-  const nextStep = () => {
+  const handleNext = () => {
     if (!formData.fullName || !formData.phone) {
-      toast.error('Full name and phone are required');
+      toast.error('Name and phone are required');
       return;
     }
+
     if (formData.quantity < 1) {
-      toast.error('Invalid ticket quantity');
+      toast.error('Quantity must be at least 1');
       return;
     }
+
     setStep(2);
   };
 
-  // ================= STEP 2: SUBMIT PAYMENT =================
-  const submitPayment = async () => {
+  // ================= STEP 2 =================
+  const handleSubmit = async () => {
     if (!transactionId) {
-      toast.error('Transaction ID required');
+      toast.error('Enter transaction ID');
       return;
     }
-
-    if (!event) return;
 
     setIsSubmitting(true);
 
     try {
-      // CREATE TICKET (pending state)
-      const created = await api.createTicket({
-        event_id: event.id,
+      const res = await api.purchaseTicket({
+        event_id: id,
         user_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
         quantity: formData.quantity,
-        payment_method: selectedMethod,
-        transaction_id: transactionId,
-        status: 'pending'
-      });
-
-      // SUBMIT PAYMENT RECORD
-      await api.submitPayment({
-        ticket_id: created.id,
-        amount: formData.quantity * event.price,
         method: selectedMethod,
-        transaction_id: transactionId
+        transaction_id: transactionId,
+        amount: formData.quantity * (event?.price || 0)
       });
 
-      setTicket(created);
+      setTicket(res);
       setStep(3);
 
-      toast.success('Payment submitted. Waiting for admin approval.');
+      toast.success('Payment submitted. Waiting for approval');
     } catch (err: any) {
-      toast.error(err?.message || 'Payment failed');
+      toast.error(err.message || 'Failed to submit');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ================= CHECK STATUS =================
-  const checkStatus = async () => {
-    if (!ticket) return;
+  // ================= PAYMENT LINK =================
+  const getPaymentLink = () => {
+    if (!transactionId) return '#';
 
-    setIsRefreshing(true);
-
-    try {
-      const updated = await api.getTicketById(ticket.id);
-      setTicket(updated);
-
-      if (updated.status === 'approved') {
-        toast.success('Ticket approved!');
-      } else if (updated.status === 'rejected') {
-        toast.error('Payment rejected');
-      } else {
-        toast.info('Still pending approval');
-      }
-    } catch {
-      toast.error('Failed to check status');
-    } finally {
-      setIsRefreshing(false);
+    if (selectedMethod === 'Telebirr') {
+      return `https://transactioninfo.ethiotelecom.et/receipt/${transactionId}`;
     }
-  };
 
-  // ================= PDF =================
-  const downloadPDF = () => {
-    if (!ticket || ticket.status !== 'approved') return;
+    if (selectedMethod === 'CBE') {
+      return `https://apps.cbe.com.et:100/?id=${transactionId}`;
+    }
 
-    const doc = new jsPDF();
-    doc.text("Kistet Addis Ticket", 20, 20);
-    doc.text(`Name: ${ticket.user_name}`, 20, 40);
-    doc.text(`Event: ${event?.title}`, 20, 50);
-    doc.text(`Quantity: ${ticket.quantity}`, 20, 60);
-    doc.text(`Ticket ID: ${ticket.id}`, 20, 70);
-    doc.save(`ticket-${ticket.id}.pdf`);
+    return `https://mpesa.com/transaction/${transactionId}`;
   };
 
   // ================= LOADING =================
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Clock className="w-10 h-10 animate-spin text-blue-600" />
+        <Clock className="animate-spin w-10 h-10 text-blue-600" />
       </div>
     );
   }
@@ -173,148 +131,148 @@ const PurchaseFlow: React.FC = () => {
 
   // ================= UI =================
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-xl p-8">
 
-        {/* LEFT */}
-        <div className="bg-blue-600 md:w-96 p-10 text-white">
-          <button onClick={() => navigate(-1)} className="mb-10">
-            <ArrowLeft />
-          </button>
-
-          <h2 className="text-3xl font-black">{event.title}</h2>
-
-          <div className="mt-10 space-y-6">
-            <div>
-              <p>Tickets</p>
-              <h3 className="text-2xl font-bold">{formData.quantity}</h3>
-            </div>
-
-            <div>
-              <p>Total</p>
-              <h3 className="text-3xl font-black">
-                {formData.quantity * event.price} ETB
-              </h3>
-            </div>
-          </div>
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-bold text-lg">{event.title}</h2>
+          {step < 3 && (
+            <button onClick={() => navigate(-1)}>
+              <ArrowLeft />
+            </button>
+          )}
         </div>
 
-        {/* RIGHT */}
-        <div className="flex-1 p-10">
+        <AnimatePresence mode="wait">
 
-          <AnimatePresence mode="wait">
+          {/* STEP 1 */}
+          {step === 1 && (
+            <motion.div key="step1">
+              <input
+                placeholder="Full Name"
+                value={formData.fullName}
+                onChange={(e) =>
+                  setFormData({ ...formData, fullName: e.target.value })
+                }
+                className="input"
+              />
 
-            {/* STEP 1 */}
-            {step === 1 && (
-              <motion.div>
-                <h1 className="text-2xl font-bold mb-6">User Info</h1>
+              <input
+                placeholder="Phone"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                className="input"
+              />
 
-                <input
-                  placeholder="Full Name"
-                  className="input"
-                  value={formData.fullName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fullName: e.target.value })
-                  }
-                />
+              <input
+                placeholder="Email (optional)"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="input"
+              />
 
-                <input
-                  placeholder="Phone"
-                  className="input"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
+              <input
+                type="number"
+                min={1}
+                value={formData.quantity}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    quantity: Number(e.target.value)
+                  })
+                }
+                className="input"
+              />
 
-                <input
-                  type="number"
-                  min={1}
-                  className="input"
-                  value={formData.quantity}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      quantity: Number(e.target.value)
-                    })
-                  }
-                />
+              <button onClick={handleNext} className="btn">
+                Next
+              </button>
+            </motion.div>
+          )}
 
-                <button onClick={nextStep} className="btn-primary mt-6">
-                  Next <ArrowRight />
-                </button>
-              </motion.div>
-            )}
+          {/* STEP 2 */}
+          {step === 2 && (
+            <motion.div key="step2">
+              <select
+                value={selectedMethod}
+                onChange={(e) =>
+                  setSelectedMethod(e.target.value as PaymentMethod)
+                }
+                className="input"
+              >
+                <option value="Telebirr">Telebirr</option>
+                <option value="CBE">CBE</option>
+                <option value="M-Pesa">M-Pesa</option>
+              </select>
 
-            {/* STEP 2 */}
-            {step === 2 && (
-              <motion.div>
-                <h1 className="text-2xl font-bold mb-6">Payment</h1>
+              <input
+                placeholder="Transaction ID"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                className="input"
+              />
 
-                <select
-                  value={selectedMethod}
-                  onChange={(e) =>
-                    setSelectedMethod(e.target.value as PaymentMethod)
-                  }
+              {transactionId && (
+                <a
+                  href={getPaymentLink()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 underline"
                 >
-                  <option value="Telebirr">Telebirr</option>
-                  <option value="CBE">CBE</option>
-                  <option value="M-Pesa">M-Pesa</option>
-                </select>
+                  Verify Payment
+                </a>
+              )}
 
-                <input
-                  placeholder="Transaction ID"
-                  className="input"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                />
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="btn"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Payment'}
+              </button>
+            </motion.div>
+          )}
 
-                <button
-                  onClick={submitPayment}
-                  disabled={isSubmitting}
-                  className="btn-primary mt-4"
-                >
-                  {isSubmitting ? 'Processing...' : 'Submit'}
-                </button>
-              </motion.div>
-            )}
+          {/* STEP 3 */}
+          {step === 3 && (
+            <motion.div key="step3" className="text-center">
 
-            {/* STEP 3 */}
-            {step === 3 && (
-              <motion.div className="text-center">
-                <h1 className="text-2xl font-bold">
-                  Status: {ticket?.status}
-                </h1>
+              {ticket?.status === 'approved' ? (
+                <>
+                  <CheckCircle2 className="mx-auto text-green-500" />
+                  <h2>Approved</h2>
 
-                {ticket?.status === 'approved' && (
-                  <>
-                    <TicketQR
-                      ticketId={ticket.id}
-                      eventId={event.id}
-                      userName={ticket.user_name}
-                      size={200}
-                    />
+                  <TicketQR
+                    ticketId={ticket.id}
+                    eventId={event.id}
+                    size={200}
+                  />
+                </>
+              ) : ticket?.status === 'rejected' ? (
+                <>
+                  <X className="mx-auto text-red-500" />
+                  <h2>Rejected</h2>
+                </>
+              ) : (
+                <>
+                  <Clock className="mx-auto" />
+                  <h2>Waiting for approval</h2>
+                  <p className="font-mono">{transactionId}</p>
+                </>
+              )}
 
-                    <button onClick={downloadPDF}>
-                      Download Ticket
-                    </button>
-                  </>
-                )}
+              <button onClick={() => navigate('/')} className="btn mt-4">
+                Go Home
+              </button>
+            </motion.div>
+          )}
 
-                {ticket?.status !== 'approved' && (
-                  <button onClick={checkStatus}>
-                    <RefreshCw /> Check Status
-                  </button>
-                )}
-
-                <button onClick={() => navigate('/')}>
-                  Home
-                </button>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );

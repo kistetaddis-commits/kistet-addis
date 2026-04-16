@@ -32,11 +32,12 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN
+// TOKEN HANDLING
 // =========================
 const getToken = () => {
   const token = localStorage.getItem("token");
-  return token && token !== "null" ? token : null;
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
 };
 
 const authHeader = () => {
@@ -48,7 +49,7 @@ const authHeader = () => {
 // API OBJECT
 // =========================
 export const api = {
-  // ========= AUTH =========
+  // ================= AUTH =================
   login: async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
@@ -80,9 +81,11 @@ export const api = {
     return handleResponse(res);
   },
 
-  logout: () => localStorage.removeItem("token"),
+  logout: () => {
+    localStorage.removeItem("token");
+  },
 
-  // ========= EVENTS =========
+  // ================= EVENTS =================
   getEvents: async () => {
     const res = await fetch(`${API_URL}/events`);
     return handleResponse(res);
@@ -106,7 +109,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ========= UPLOAD =========
+  // ================= IMAGE UPLOAD =================
   uploadImage: async (file: File) => {
     const form = new FormData();
     form.append("image", file);
@@ -120,7 +123,11 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ========= TICKETS =========
+  // ================= TICKETS =================
+  /**
+   * MAIN FLOW (CURRENT SYSTEM)
+   * Creates ticket + submits payment in one step
+   */
   purchaseTicket: async (data: any) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
@@ -134,6 +141,21 @@ export const api = {
     return handleResponse(res);
   },
 
+  /**
+   * FUTURE: Get single ticket (for approval check)
+   * (safe to use later when backend ready)
+   */
+  getTicketById: async (id: string) => {
+    const res = await fetch(`${API_URL}/tickets/${id}`, {
+      headers: authHeader(),
+    });
+
+    return handleResponse(res);
+  },
+
+  /**
+   * Scan QR ticket
+   */
   scanTicket: async (qrCode: string) => {
     const res = await fetch(`${API_URL}/tickets/scan`, {
       method: "POST",
@@ -147,24 +169,95 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ========= PAYMENTS =========
+  // ================= PAYMENTS =================
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
-  verifyPayment: async (paymentId: string, status: "verified" | "rejected") => {
+  verifyPayment: async (
+    paymentId: string,
+    status: "verified" | "rejected",
+    reason?: string
+  ) => {
     const res = await fetch(`${API_URL}/payments/verify/${paymentId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         ...authHeader(),
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, reason }),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= USERS =================
+  updateProfile: async (data: any) => {
+    const res = await fetch(`${API_URL}/users/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader(),
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= ORGANIZERS =================
+  getOrganizers: async () => {
+    const res = await fetch(`${API_URL}/organizers`, {
+      headers: authHeader(),
+    });
+
+    return handleResponse(res);
+  },
+
+  createOrganizer: async (data: any) => {
+    const res = await fetch(`${API_URL}/organizers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader(),
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= ADMIN =================
+  getMetrics: async () => {
+    const res = await fetch(`${API_URL}/admin/metrics`, {
+      headers: authHeader(),
     });
 
     return handleResponse(res);
   },
 };
+
+// ================= EXPORT SHORTCUTS =================
+export const {
+  login,
+  loginWithUsernameOrEmail,
+  getMe,
+  logout,
+  getEvents,
+  getEvent,
+  createEvent,
+  uploadImage,
+  purchaseTicket,
+  getTicketById,
+  scanTicket,
+  getPendingPayments,
+  verifyPayment,
+  updateProfile,
+  getOrganizers,
+  createOrganizer,
+  getMetrics,
+} = api;
