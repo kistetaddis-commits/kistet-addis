@@ -4,13 +4,17 @@ import {
   ArrowLeft,
   Loader2,
   Clock,
-  CheckCircle,
-  CreditCard
+  CheckCircle2,
+  CreditCard,
+  Phone,
+  User,
+  Hash
 } from 'lucide-react';
+
 import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Event, PaymentMethod } from '../types';
+import { Event } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Step = 1 | 2 | 3;
@@ -18,109 +22,78 @@ type Step = 1 | 2 | 3;
 const PurchaseFlow: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useLanguage();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     fullName: '',
     phone: '',
     email: '',
     quantity: 1,
   });
 
-  const [selectedMethod, setSelectedMethod] =
-    useState<PaymentMethod>('Telebirr');
-
-  const [transactionId, setTransactionId] = useState('');
+  const [method, setMethod] = useState<'Telebirr' | 'CBE' | 'M-Pesa'>('Telebirr');
+  const [txId, setTxId] = useState('');
   const [ticketId, setTicketId] = useState<string | null>(null);
 
   // ================= LOAD EVENT =================
   useEffect(() => {
-    const load = async () => {
+    (async () => {
       if (!id) return;
 
       try {
-        const ev = await api.getEvent(id);
-        setEvent(ev);
+        const data = await api.getEvent(id);
+        setEvent(data);
       } catch {
         toast.error('Failed to load event');
       } finally {
         setLoading(false);
       }
-    };
-
-    load();
+    })();
   }, [id]);
 
-  // ================= VALIDATION =================
-  const validateStep1 = () => {
-    if (!formData.fullName.trim()) return 'Full name required';
-    if (!formData.phone.trim()) return 'Phone required';
-    if (formData.quantity < 1) return 'Invalid quantity';
-    return null;
-  };
-
-  const validateStep2 = () => {
-    if (!transactionId.trim()) return 'Transaction ID required';
-    return null;
-  };
-
-  // ================= NEXT =================
-  const handleNext = async () => {
+  // ================= STEP VALIDATION =================
+  const nextStep = async () => {
     if (step === 1) {
-      const error = validateStep1();
-      if (error) return toast.error(error);
+      if (!form.fullName || !form.phone) {
+        toast.error('Name and phone are required');
+        return;
+      }
       setStep(2);
       return;
     }
 
     if (step === 2) {
-      const error = validateStep2();
-      if (error) return toast.error(error);
+      if (!txId) {
+        toast.error('Enter transaction ID');
+        return;
+      }
 
-      setIsSubmitting(true);
+      setSubmitting(true);
 
       try {
         const res = await api.purchaseTicket({
           event_id: id!,
-          user_name: formData.fullName,
-          phone: formData.phone,
-          email: formData.email,
-          quantity: formData.quantity,
-          method: selectedMethod,
-          transaction_id: transactionId,
-          amount: formData.quantity * (event?.ticket_price || 0),
+          user_name: form.fullName,
+          phone: form.phone,
+          email: form.email || null,
+          quantity: form.quantity,
+          method,
+          transaction_id: txId,
+          amount: form.quantity * (event?.price || 0),
         });
 
-        setTicketId(res.ticket?.id || res.ticket_id);
+        setTicketId(res.ticket_id);
         setStep(3);
-
-        toast.success('Payment submitted successfully');
+        toast.success('Payment submitted for approval');
       } catch (err: any) {
         toast.error(err.message || 'Payment failed');
       } finally {
-        setIsSubmitting(false);
+        setSubmitting(false);
       }
-    }
-  };
-
-  // ================= PAYMENT LINKS =================
-  const getPaymentLink = () => {
-    if (!transactionId) return '';
-
-    switch (selectedMethod) {
-      case 'Telebirr':
-        return `https://transactioninfo.ethiotelecom.et/receipt/${transactionId}`;
-      case 'CBE':
-        return `https://apps.cbe.com.et:100/?id=${transactionId}`;
-      case 'M-Pesa':
-        return `https://mpesa.com/transaction/${transactionId}`;
-      default:
-        return '';
     }
   };
 
@@ -137,7 +110,19 @@ const PurchaseFlow: React.FC = () => {
     return <div className="p-10 text-center">Event not found</div>;
   }
 
-  const totalPrice = formData.quantity * (event.ticket_price || 0);
+  // ================= PAYMENT CARDS =================
+  const PaymentCard = ({ label, selected, onClick }: any) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full p-4 rounded-2xl border transition-all flex items-center justify-between ${
+        selected ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+      }`}
+    >
+      <span className="font-bold">{label}</span>
+      {selected && <CheckCircle2 className="text-blue-600" />}
+    </button>
+  );
 
   // ================= UI =================
   return (
@@ -147,7 +132,7 @@ const PurchaseFlow: React.FC = () => {
 
         {/* HEADER */}
         <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="font-bold text-lg">{event.title}</h2>
+          <h2 className="font-black text-lg">{event.title}</h2>
 
           {step < 3 && (
             <button onClick={() => navigate(-1)}>
@@ -156,144 +141,163 @@ const PurchaseFlow: React.FC = () => {
           )}
         </div>
 
-        {/* BODY */}
+        {/* STEP INDICATOR */}
+        <div className="flex gap-2 p-4">
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              className={`h-2 flex-1 rounded-full ${
+                step >= s ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* CONTENT */}
         <div className="p-6">
-
-          {/* STEP INDICATOR */}
-          <div className="flex gap-2 mb-6">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`h-2 flex-1 rounded-full ${
-                  step >= s ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              />
-            ))}
-          </div>
-
           <AnimatePresence mode="wait">
 
             {/* STEP 1 */}
             {step === 1 && (
-              <motion.div key="step1" className="space-y-4">
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+
+                <div className="flex items-center gap-2 font-bold text-gray-700">
+                  <User size={18} /> Personal Info
+                </div>
 
                 <input
-                  placeholder="Full Name"
-                  value={formData.fullName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fullName: e.target.value })
-                  }
+                  placeholder="Full Name *"
+                  value={form.fullName}
+                  onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                   className="w-full p-3 border rounded-xl"
                 />
 
                 <input
-                  placeholder="Phone"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
+                  placeholder="Phone *"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   className="w-full p-3 border rounded-xl"
                 />
 
                 <input
-                  type="email"
                   placeholder="Email (optional)"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className="w-full p-3 border rounded-xl"
                 />
 
                 <input
                   type="number"
                   min={1}
-                  value={formData.quantity}
+                  value={form.quantity}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      quantity: Number(e.target.value),
-                    })
+                    setForm({ ...form, quantity: Number(e.target.value) })
                   }
                   className="w-full p-3 border rounded-xl"
                 />
 
-                <div className="font-bold">
-                  Total: {totalPrice} ETB
-                </div>
-
                 <button
-                  onClick={handleNext}
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl"
+                  onClick={nextStep}
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold"
                 >
-                  Next
+                  Continue
                 </button>
               </motion.div>
             )}
 
             {/* STEP 2 */}
             {step === 2 && (
-              <motion.div key="step2" className="space-y-4">
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
 
-                <div className="p-4 bg-gray-50 rounded-xl text-sm">
-                  <p className="font-bold mb-2">Payment Methods</p>
-
-                  <p>Telebirr: {getPaymentLink()}</p>
-                  <p>CBE: {getPaymentLink()}</p>
-                  <p>M-Pesa: {getPaymentLink()}</p>
+                <div className="font-bold flex items-center gap-2">
+                  <CreditCard size={18} /> Payment Method
                 </div>
 
-                <select
-                  value={selectedMethod}
-                  onChange={(e) =>
-                    setSelectedMethod(e.target.value as PaymentMethod)
-                  }
-                  className="w-full p-3 border rounded-xl"
-                >
-                  <option value="Telebirr">Telebirr</option>
-                  <option value="CBE">CBE</option>
-                  <option value="M-Pesa">M-Pesa</option>
-                </select>
-
-                <input
-                  placeholder="Transaction ID"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  className="w-full p-3 border rounded-xl"
+                <PaymentCard
+                  label="Telebirr"
+                  selected={method === 'Telebirr'}
+                  onClick={() => setMethod('Telebirr')}
                 />
 
-                <button
-                  onClick={handleNext}
-                  disabled={isSubmitting}
-                  className="w-full bg-green-600 text-white py-3 rounded-xl"
-                >
-                  {isSubmitting ? 'Processing...' : 'Submit Payment'}
-                </button>
+                <PaymentCard
+                  label="CBE"
+                  selected={method === 'CBE'}
+                  onClick={() => setMethod('CBE')}
+                />
 
+                <PaymentCard
+                  label="M-Pesa"
+                  selected={method === 'M-Pesa'}
+                  onClick={() => setMethod('M-Pesa')}
+                />
+
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <Hash size={18} /> Transaction ID
+                  </div>
+
+                  <input
+                    value={txId}
+                    onChange={(e) => setTxId(e.target.value)}
+                    placeholder="Enter transaction ID"
+                    className="w-full p-3 border rounded-xl"
+                  />
+                </div>
+
+                <button
+                  onClick={nextStep}
+                  disabled={submitting}
+                  className="w-full bg-green-600 text-white py-3 rounded-xl font-bold"
+                >
+                  {submitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="animate-spin" /> Processing
+                    </span>
+                  ) : (
+                    'Submit Payment'
+                  )}
+                </button>
               </motion.div>
             )}
 
             {/* STEP 3 */}
             {step === 3 && (
-              <motion.div key="step3" className="text-center space-y-4">
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center space-y-4"
+              >
 
-                <Clock className="mx-auto w-10 h-10 text-blue-600" />
+                <Clock className="mx-auto text-blue-600" size={40} />
 
-                <h2 className="font-bold text-lg">
+                <h2 className="font-black text-xl">
                   Waiting for Admin Approval
                 </h2>
 
-                <p className="text-sm text-gray-500">
-                  Your ticket will be issued after approval
+                <p className="text-gray-500">
+                  Your ticket will appear after verification
                 </p>
 
-                <div className="p-3 bg-gray-100 rounded-xl font-mono">
-                  Ticket ID: {ticketId}
+                <div className="bg-gray-100 p-3 rounded-xl font-mono">
+                  {ticketId}
                 </div>
 
                 <button
                   onClick={() => navigate('/')}
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl"
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold"
                 >
                   Go Home
                 </button>
