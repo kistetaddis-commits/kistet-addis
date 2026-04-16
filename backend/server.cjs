@@ -64,15 +64,13 @@ const authenticateToken = (req, res, next) => {
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
+    if (err) return res.status(403).json({ message: "Invalid token" });
     req.user = user;
     next();
   });
 };
 
-// ================= LOGIN =================
+// ================= LOGIN (FIXED) =================
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -82,11 +80,22 @@ app.post("/api/auth/login", async (req, res) => {
       [email]
     );
 
-    const user = result.rows[0];
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+    const user = result.rows[0];
+
+    // ✅ FIXED: correct column
+    if (!user.password) {
+      return res.status(500).json({ message: "User password not set" });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -96,7 +105,7 @@ app.post("/api/auth/login", async (req, res) => {
 
     res.json({ token, user });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
+    console.error("LOGIN ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -109,7 +118,7 @@ app.get("/api/events", async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error("EVENTS ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -127,12 +136,12 @@ app.get("/api/events/:id", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    console.error("EVENT ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ================= ✅ CREATE EVENT (FIXED - IMPORTANT) =================
+// ================= CREATE EVENT =================
 app.post("/api/events", authenticateToken, async (req, res) => {
   try {
     const {
@@ -154,9 +163,10 @@ app.post("/api/events", authenticateToken, async (req, res) => {
         id, title, description, event_date,
         location, latitude, longitude,
         ticket_price, total_tickets,
+        sold_tickets,
         selling_deadline, event_type,
         image_url, created_by
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING *`,
       [
         uuidv4(),
@@ -168,6 +178,7 @@ app.post("/api/events", authenticateToken, async (req, res) => {
         longitude,
         price,
         total_tickets,
+        0,
         selling_deadline,
         event_type,
         image_url,
@@ -198,7 +209,7 @@ app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
       pendingPayments: 0,
     });
   } catch (err) {
-    console.error(err);
+    console.error("ADMIN ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -207,9 +218,8 @@ app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
 app.get("/api/payments/pending", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM payments WHERE status = 'pending' ORDER BY created_at DESC"
+      "SELECT * FROM payments WHERE status='pending' ORDER BY created_at DESC"
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error("PAYMENTS ERROR:", err.message);
@@ -250,7 +260,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       ]
     );
 
-    res.json({ success: true, message: "Ticket submitted" });
+    res.json({ success: true });
   } catch (err) {
     console.error("TICKET ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
@@ -265,7 +275,7 @@ app.get("/api/organizers", authenticateToken, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error("ORGANIZER ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
