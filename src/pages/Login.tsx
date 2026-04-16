@@ -47,17 +47,22 @@ const Login: React.FC = () => {
     try {
       const result = await loginWithUsernameOrEmail(identifier, password);
 
-      if (!result || result.error || !result.user) {
-        toast.error(result?.error || 'Invalid credentials');
+      // ✅ FIX 1: better response validation
+      if (!result || !result.user || !result.token) {
+        toast.error(result?.message || 'Invalid credentials');
         setLoading(false);
         return;
       }
 
+      // ✅ FIX 2: SAVE TOKEN (CRITICAL)
+      localStorage.setItem("token", result.token);
+
+      // ✅ FIX 3: set auth user
       setUser(result.user);
 
       toast.success(`Welcome back, ${result.user.name || 'User'}!`);
 
-      // 🔥 IMPORTANT: force redirect immediately
+      // ✅ FIX 4: redirect immediately
       redirectUser(result.user);
 
     } catch (err: any) {
