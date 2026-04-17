@@ -16,7 +16,7 @@ console.log("🌍 API URL:", API_URL);
 async function handleResponse(res: Response) {
   const text = await res.text();
 
-  let data: any = null;
+  let data: any = {};
 
   try {
     data = text ? JSON.parse(text) : {};
@@ -46,7 +46,7 @@ const authHeader = () => {
 };
 
 // =========================
-// API OBJECT
+// API
 // =========================
 export const api = {
   // ================= AUTH =================
@@ -102,6 +102,12 @@ export const api = {
     return handleResponse(res);
   },
 
+  // ✅ FIX: used by PurchaseFlow
+  getEventById: async (id: string) => {
+    const res = await fetch(`${API_URL}/events/${id}`);
+    return handleResponse(res);
+  },
+
   createEvent: async (data: any) => {
     const res = await fetch(`${API_URL}/events`, {
       method: "POST",
@@ -130,7 +136,9 @@ export const api = {
   },
 
   // ================= TICKETS =================
-  purchaseTicket: async (data: any) => {
+
+  // ✅ FIX: alias used by your UI
+  createTicket: async (data: any) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
       headers: {
@@ -141,6 +149,10 @@ export const api = {
     });
 
     return handleResponse(res);
+  },
+
+  purchaseTicket: async (data: any) => {
+    return api.createTicket(data);
   },
 
   getTicketById: async (id: string) => {
@@ -237,29 +249,27 @@ export const api = {
 };
 
 // =========================
-// FIX: named exports for old imports
+// COMPAT EXPORTS (IMPORTANT)
 // =========================
-export const login = api.login;
-export const loginWithUsernameOrEmail = api.loginWithUsernameOrEmail;
-export const getMe = api.getMe;
-export const logout = api.logout;
-
-export const getEvents = api.getEvents;
-export const getAllEvents = api.getAllEvents;
-export const getEvent = api.getEvent;
-export const createEvent = api.createEvent;
-export const uploadImage = api.uploadImage;
-
-export const purchaseTicket = api.purchaseTicket;
-export const getTicketById = api.getTicketById;
-export const scanTicket = api.scanTicket;
-
-export const getPendingPayments = api.getPendingPayments;
-export const verifyPayment = api.verifyPayment;
-
-export const updateProfile = api.updateProfile;
-
-export const getOrganizers = api.getOrganizers;
-export const createOrganizer = api.createOrganizer;
-
-export const getMetrics = api.getMetrics;
+export const {
+  login,
+  loginWithUsernameOrEmail,
+  getMe,
+  logout,
+  getEvents,
+  getAllEvents,
+  getEvent,
+  getEventById,
+  createEvent,
+  uploadImage,
+  createTicket,
+  purchaseTicket,
+  getTicketById,
+  scanTicket,
+  getPendingPayments,
+  verifyPayment,
+  updateProfile,
+  getOrganizers,
+  createOrganizer,
+  getMetrics,
+} = api;
