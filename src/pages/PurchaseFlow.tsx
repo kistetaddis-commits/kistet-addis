@@ -35,11 +35,13 @@ const PurchaseFlow: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [formData, setFormData] = useState<PurchaseFormData>({
-    fullName: '',
-    phone: '',
-    email: '',
-    quantity: 1
-  });
+  eventId: '',
+  fullName: '',
+  phone: '',
+  email: '',
+  quantity: 1,
+  paymentMethod: 'Telebirr'
+});
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('Telebirr');
   const [transactionId, setTransactionId] = useState('');
   const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);

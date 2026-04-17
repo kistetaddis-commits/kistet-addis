@@ -102,7 +102,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ✅ FIX: used by PurchaseFlow
   getEventById: async (id: string) => {
     const res = await fetch(`${API_URL}/events/${id}`);
     return handleResponse(res);
@@ -136,8 +135,6 @@ export const api = {
   },
 
   // ================= TICKETS =================
-
-  // ✅ FIX: alias used by your UI
   createTicket: async (data: any) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
@@ -246,10 +243,74 @@ export const api = {
 
     return handleResponse(res);
   },
+
+  // ================= ADMIN FIX (ADDED) =================
+  getPendingTickets: async () => {
+    const res = await fetch(`${API_URL}/tickets/pending`, {
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  approveTicket: async (ticketId: string) => {
+    const res = await fetch(`${API_URL}/tickets/approve/${ticketId}`, {
+      method: "PUT",
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  rejectTicket: async (ticketId: string) => {
+    const res = await fetch(`${API_URL}/tickets/reject/${ticketId}`, {
+      method: "PUT",
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  // ================= PAYMENT ACCOUNTS =================
+  getPaymentAccounts: async () => {
+    const res = await fetch(`${API_URL}/payments/accounts`, {
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  createPaymentAccount: async (data: any) => {
+    const res = await fetch(`${API_URL}/payments/accounts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader(),
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  updatePaymentAccount: async (id: string, data: any) => {
+    const res = await fetch(`${API_URL}/payments/accounts/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader(),
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  deletePaymentAccount: async (id: string) => {
+    const res = await fetch(`${API_URL}/payments/accounts/${id}`, {
+      method: "DELETE",
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
 };
 
 // =========================
-// COMPAT EXPORTS (IMPORTANT)
+// EXPORTS
 // =========================
 export const {
   login,
@@ -272,4 +333,11 @@ export const {
   getOrganizers,
   createOrganizer,
   getMetrics,
+  getPendingTickets,
+  approveTicket,
+  rejectTicket,
+  getPaymentAccounts,
+  createPaymentAccount,
+  updatePaymentAccount,
+  deletePaymentAccount,
 } = api;

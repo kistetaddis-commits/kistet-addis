@@ -39,11 +39,13 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [formData, setFormData] = useState<PurchaseFormData>({
-    fullName: '',
-    phone: '',
-    email: '',
-    quantity: 1
-  });
+  eventId: '',
+  fullName: '',
+  phone: '',
+  email: '',
+  quantity: 1,
+  paymentMethod: 'Telebirr'
+});
   
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('Telebirr');
