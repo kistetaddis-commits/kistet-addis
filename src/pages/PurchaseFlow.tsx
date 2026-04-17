@@ -325,9 +325,10 @@ const PurchaseFlow: React.FC = () => {
                 </div>
 
                 <div className="p-8 bg-gray-900 rounded-[2.5rem] text-white space-y-6">
-                   <p className="text-xl font-bold leading-tight">
-                     Send <span className="text-blue-400">{formData.quantity * event.price} ETB</span> to our {selectedMethod} account.
-                   </p>
+                   <p className="text-4xl font-black">
+  {(Number(formData.quantity) || 0) * (Number(event?.price) || 0)}{" "}
+  <span className="text-sm opacity-60">ETB</span>
+</p>
                    <div className="bg-white/10 p-6 rounded-2xl border border-white/5 space-y-4">
                      <div>
                         <p className="text-[10px] font-black opacity-40 uppercase tracking-widest">Account Number</p>
