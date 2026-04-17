@@ -20,7 +20,7 @@ import { Event, Ticket } from '../types';
 import { toast } from 'sonner';
 
 const OrganizerDashboard: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { user: currentUser, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'events' | 'scanner' | 'stats'>('events');
@@ -32,17 +32,18 @@ const OrganizerDashboard: React.FC = () => {
   const [scanResult, setScanResult] = useState<any>(null);
   const [qrInput, setQrInput] = useState('');
 
+  const getEventTitle = (event: Event) => {
+    if (typeof event.title === 'string') return event.title;
+    return (event.title as any)[language] || (event.title as any).en || '';
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     try {
       const evs = await api.getEvents();
-      // For organizers, we might want to filter events they created. 
-      // In this demo, we show all if they are admin/organizer.
       setEvents(evs || []);
       if (evs && evs.length > 0) {
         setSelectedEvent(evs[0]);
-        // Mocking tickets for now as we don't have a specific endpoint for organizer tickets per event
-        // but let's assume getPendingPayments or similar could be used or a new endpoint
         setTickets([]);
       }
     } catch (error) {
@@ -147,7 +148,7 @@ const OrganizerDashboard: React.FC = () => {
             {activeTab === 'events' ? 'Assigned Events' : activeTab === 'scanner' ? 'Ticket Scanner' : 'Event Statistics'}
           </h1>
           <p className="text-gray-500">
-            {selectedEvent ? `Managing: ${selectedEvent.title}` : 'Select an event to manage'}
+            {selectedEvent ? `Managing: ${getEventTitle(selectedEvent)}` : 'Select an event to manage'}
           </p>
         </header>
 
@@ -176,7 +177,7 @@ const OrganizerDashboard: React.FC = () => {
                           {event.image_url && <img src={event.image_url} alt="" className="w-full h-full object-cover" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-black text-gray-900 truncate">{event.title}</h4>
+                          <h4 className="font-black text-gray-900 truncate">{getEventTitle(event)}</h4>
                           <div className="flex items-center gap-1 text-xs text-gray-500 font-bold mt-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(event.date).toLocaleDateString()}
