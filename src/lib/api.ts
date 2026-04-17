@@ -32,7 +32,7 @@ async function handleResponse(res: Response) {
 }
 
 // =========================
-// TOKEN HANDLING
+// TOKEN HELPERS
 // =========================
 const getToken = () => {
   const token = localStorage.getItem("token");
@@ -78,6 +78,7 @@ export const api = {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
@@ -87,6 +88,11 @@ export const api = {
 
   // ================= EVENTS =================
   getEvents: async () => {
+    const res = await fetch(`${API_URL}/events`);
+    return handleResponse(res);
+  },
+
+  getAllEvents: async () => {
     const res = await fetch(`${API_URL}/events`);
     return handleResponse(res);
   },
@@ -109,7 +115,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  // ================= IMAGE UPLOAD =================
+  // ================= UPLOAD =================
   uploadImage: async (file: File) => {
     const form = new FormData();
     form.append("image", file);
@@ -124,10 +130,6 @@ export const api = {
   },
 
   // ================= TICKETS =================
-  /**
-   * MAIN FLOW (CURRENT SYSTEM)
-   * Creates ticket + submits payment in one step
-   */
   purchaseTicket: async (data: any) => {
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
@@ -141,10 +143,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  /**
-   * FUTURE: Get single ticket (for approval check)
-   * (safe to use later when backend ready)
-   */
   getTicketById: async (id: string) => {
     const res = await fetch(`${API_URL}/tickets/${id}`, {
       headers: authHeader(),
@@ -153,9 +151,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  /**
-   * Scan QR ticket
-   */
   scanTicket: async (qrCode: string) => {
     const res = await fetch(`${API_URL}/tickets/scan`, {
       method: "POST",
@@ -179,11 +174,11 @@ export const api = {
   },
 
   verifyPayment: async (
-    paymentId: string,
+    id: string,
     status: "verified" | "rejected",
     reason?: string
   ) => {
-    const res = await fetch(`${API_URL}/payments/verify/${paymentId}`, {
+    const res = await fetch(`${API_URL}/payments/verify/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -241,23 +236,30 @@ export const api = {
   },
 };
 
-// ================= EXPORT SHORTCUTS =================
-export const {
-  login,
-  loginWithUsernameOrEmail,
-  getMe,
-  logout,
-  getEvents,
-  getEvent,
-  createEvent,
-  uploadImage,
-  purchaseTicket,
-  getTicketById,
-  scanTicket,
-  getPendingPayments,
-  verifyPayment,
-  updateProfile,
-  getOrganizers,
-  createOrganizer,
-  getMetrics,
-} = api;
+// =========================
+// FIX: named exports for old imports
+// =========================
+export const login = api.login;
+export const loginWithUsernameOrEmail = api.loginWithUsernameOrEmail;
+export const getMe = api.getMe;
+export const logout = api.logout;
+
+export const getEvents = api.getEvents;
+export const getAllEvents = api.getAllEvents;
+export const getEvent = api.getEvent;
+export const createEvent = api.createEvent;
+export const uploadImage = api.uploadImage;
+
+export const purchaseTicket = api.purchaseTicket;
+export const getTicketById = api.getTicketById;
+export const scanTicket = api.scanTicket;
+
+export const getPendingPayments = api.getPendingPayments;
+export const verifyPayment = api.verifyPayment;
+
+export const updateProfile = api.updateProfile;
+
+export const getOrganizers = api.getOrganizers;
+export const createOrganizer = api.createOrganizer;
+
+export const getMetrics = api.getMetrics;
