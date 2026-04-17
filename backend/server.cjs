@@ -13,7 +13,7 @@ const { v4: uuidv4 } = require("uuid");
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ================= ENSURE UPLOADS FOLDER =================
+// ================= UPLOAD FOLDER =================
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
@@ -70,11 +70,11 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ================= LOGIN (FIXED) =================
+// ================= LOGIN =================
 app.post("/api/auth/login", async (req, res) => {
-  const { email, password } = req.body;
-
   try {
+    const { email, password } = req.body;
+
     const result = await pool.query(
       "SELECT * FROM users WHERE email=$1 OR name=$1",
       [email]
@@ -85,11 +85,6 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const user = result.rows[0];
-
-    // ✅ FIXED: correct column
-    if (!user.password) {
-      return res.status(500).json({ message: "User password not set" });
-    }
 
     const valid = await bcrypt.compare(password, user.password);
 
@@ -114,11 +109,10 @@ app.post("/api/auth/login", async (req, res) => {
 app.get("/api/events", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM events ORDER BY event_date DESC"
+      "SELECT * FROM events ORDER BY created_at DESC"
     );
     res.json(result.rows);
   } catch (err) {
-    console.error("EVENTS ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -136,7 +130,6 @@ app.get("/api/events/:id", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("EVENT ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -188,7 +181,6 @@ app.post("/api/events", authenticateToken, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("CREATE EVENT ERROR:", err.message);
     res.status(500).json({
       message: "Failed to create event",
       error: err.message,
@@ -196,7 +188,7 @@ app.post("/api/events", authenticateToken, async (req, res) => {
   }
 });
 
-// ================= ADMIN =================
+// ================= ADMIN METRICS =================
 app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
   try {
     const users = await pool.query("SELECT COUNT(*) FROM users");
@@ -209,7 +201,6 @@ app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
       pendingPayments: 0,
     });
   } catch (err) {
-    console.error("ADMIN ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -222,12 +213,37 @@ app.get("/api/payments/pending", authenticateToken, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error("PAYMENTS ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 // ================= TICKETS =================
+
+// 🔥 FIXED: pending tickets route (THIS WAS YOUR ERROR)
+app.get("/api/tickets/pending", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM tickets WHERE status='pending' ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 🔥 optional but useful
+app.get("/api/tickets/approved", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM tickets WHERE status='approved' ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ================= PURCHASE TICKET =================
 app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
   try {
     const {
@@ -262,7 +278,6 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error("TICKET ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -275,7 +290,6 @@ app.get("/api/organizers", authenticateToken, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error("ORGANIZER ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
