@@ -294,6 +294,17 @@ app.get("/api/organizers", authenticateToken, async (req, res) => {
   }
 });
 
+// ================= PAYMENT ACCOUNTS =================
+app.get("/api/payments/accounts", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM payment_accounts");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ================= UPLOAD =================
 app.post(
   "/api/upload",
