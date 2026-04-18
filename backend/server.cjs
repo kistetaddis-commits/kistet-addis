@@ -34,7 +34,7 @@ pool
   .catch((err) => console.error("❌ DB Error:", err.message));
 
 // ================= MIDDLEWARE =================
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use("/uploads", express.static(uploadDir));
 
@@ -44,12 +44,11 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) =>
     cb(null, `${Date.now()}-${uuidv4()}${path.extname(file.originalname)}`),
 });
-
 const upload = multer({ storage });
 
 // ================= AUTH =================
 const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.headers["authorization"]?.split(" ")[1];
 
   if (!token) return res.status(401).json({ message: "No token" });
 
@@ -76,7 +75,6 @@ app.post("/api/auth/login", async (req, res) => {
     const user = result.rows[0];
 
     const valid = await bcrypt.compare(password, user.password);
-
     if (!valid)
       return res.status(401).json({ message: "Invalid credentials" });
 
@@ -88,21 +86,37 @@ app.post("/api/auth/login", async (req, res) => {
 
     res.json({ token, user });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 // ================= EVENTS =================
 app.get("/api/events", async (req, res) => {
-  const result = await pool.query("SELECT * FROM events ORDER BY created_at DESC");
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM events ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 app.get("/api/events/:id", async (req, res) => {
-  const result = await pool.query("SELECT * FROM events WHERE id=$1", [req.params.id]);
-  if (!result.rows.length) return res.status(404).json({ message: "Not found" });
-  res.json(result.rows[0]);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM events WHERE id=$1",
+      [req.params.id]
+    );
+
+    if (!result.rows.length)
+      return res.status(404).json({ message: "Not found" });
+
+    res.json(result.rows[0]);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ================= CREATE EVENT =================
@@ -126,11 +140,10 @@ app.post("/api/events", authenticateToken, async (req, res) => {
       `INSERT INTO events (
         id, title, description, event_date,
         location, latitude, longitude,
-        ticket_price, total_tickets,
-        sold_tickets, selling_deadline,
-        event_type, image_url, created_by
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,$11,$12,$13)
+        ticket_price, total_tickets, sold_tickets,
+        selling_deadline, event_type,
+        image_url, created_by
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,$11,$12,$13)
       RETURNING *`,
       [
         uuidv4(),
@@ -157,75 +170,101 @@ app.post("/api/events", authenticateToken, async (req, res) => {
 
 // ================= PAYMENT ACCOUNTS =================
 
-// 🔥 THIS WAS MISSING (your error)
+// 🔥 THIS FIXES YOUR ERROR
 app.get("/api/payments/accounts", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM payment_accounts WHERE is_active=true"
+      "SELECT * FROM payment_accounts ORDER BY created_at DESC"
     );
     res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/payments/accounts", authenticateToken, async (req, res) => {
+  try {
+    const { method_name, account_number, account_name, description } =
+      req.body;
+
+    const result = await pool.query(
+      `INSERT INTO payment_accounts 
+      (id, method_name, account_number, account_name, description, is_active)
+      VALUES ($1,$2,$3,$4,$5,true)
+      RETURNING *`,
+      [uuidv4(), method_name, account_number, account_name, description]
+    );
+
+    res.json(result.rows[0]);
+  } catch {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // ================= PAYMENTS =================
 app.get("/api/payments/pending", authenticateToken, async (req, res) => {
-  const result = await pool.query(
-    "SELECT * FROM payments WHERE status='pending'"
-  );
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM payments WHERE status='pending'"
+    );
+    res.json(result.rows);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ================= TICKETS =================
-
-// 🔥 FIXED route
 app.get("/api/tickets/pending", authenticateToken, async (req, res) => {
-  const result = await pool.query(
-    "SELECT * FROM tickets WHERE status='pending'"
-  );
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM tickets WHERE status='pending'"
+    );
+    res.json(result.rows);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-// 🔥 approve
+app.get("/api/tickets/approved", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM tickets WHERE status='approved'"
+    );
+    res.json(result.rows);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 🔥 APPROVE / REJECT (VERY IMPORTANT)
 app.put("/api/tickets/:id/approve", authenticateToken, async (req, res) => {
-  await pool.query(
-    "UPDATE tickets SET status='approved' WHERE id=$1",
-    [req.params.id]
-  );
-  res.json({ success: true });
+  try {
+    await pool.query(
+      "UPDATE tickets SET status='approved' WHERE id=$1",
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-// 🔥 reject
 app.put("/api/tickets/:id/reject", authenticateToken, async (req, res) => {
-  await pool.query(
-    "UPDATE tickets SET status='rejected' WHERE id=$1",
-    [req.params.id]
-  );
-  res.json({ success: true });
+  try {
+    await pool.query(
+      "UPDATE tickets SET status='rejected' WHERE id=$1",
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ================= PURCHASE =================
-app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
-  const {
-    event_id,
-    user_name,
-    phone,
-    email,
-    quantity,
-    method,
-    transaction_id,
-    amount,
-  } = req.body;
-
-  await pool.query(
-    `INSERT INTO tickets (
-      id, event_id, user_name, phone,
-      email, quantity, method,
-      transaction_id, amount, status
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
-    [
-      uuidv4(),
+app.post("/api/tickets/purchase", async (req, res) => {
+  try {
+    const {
       event_id,
       user_name,
       phone,
@@ -234,25 +273,47 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       method,
       transaction_id,
       amount,
-    ]
-  );
+    } = req.body;
 
-  res.json({ success: true });
-});
+    await pool.query(
+      `INSERT INTO tickets (
+        id, event_id, user_name, phone,
+        email, quantity, method,
+        transaction_id, amount, status
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
+      [
+        uuidv4(),
+        event_id,
+        user_name,
+        phone,
+        email,
+        quantity,
+        method,
+        transaction_id,
+        amount,
+      ]
+    );
 
-// ================= ORGANIZERS =================
-app.get("/api/organizers", authenticateToken, async (req, res) => {
-  const result = await pool.query(
-    "SELECT id, name, email FROM users WHERE role='organizer'"
-  );
-  res.json(result.rows);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ================= UPLOAD =================
-app.post("/api/upload", authenticateToken, upload.single("image"), (req, res) => {
-  const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-  res.json({ url });
-});
+app.post(
+  "/api/upload",
+  authenticateToken,
+  upload.single("image"),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file" });
+    }
+
+    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    res.json({ url });
+  }
+);
 
 // ================= HEALTH =================
 app.get("/api/health", (req, res) => {
