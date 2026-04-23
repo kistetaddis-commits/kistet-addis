@@ -277,54 +277,35 @@ app.get("/api/tickets/approved", authenticateToken, async (req, res) => {
 // ================= PURCHASE TICKET =================
 app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
   try {
-    const {
-      event_id,
-      user_name,
-      phone,
-      email,
-      quantity,
-      method,
-      transaction_id,
-    } = req.body;
+    console.log("BODY:", req.body);
 
-    // ✅ Validate required fields
-    if (!event_id || !user_name || !phone || !quantity) {
-      return res.status(400).json({ message: "Missing required fields" });
+    const { event_id, user_name, phone, email, quantity, method, transaction_id } = req.body;
+
+    if (!event_id || !user_name || !phone) {
+      return res.status(400).json({ message: "Missing fields" });
     }
 
-    // 🔥 Get event price from database (DO NOT trust frontend)
     const eventResult = await pool.query(
       "SELECT ticket_price FROM events WHERE id = $1",
       [event_id]
     );
 
-    if (eventResult.rows.length === 0) {
+    if (!eventResult.rows.length) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // ✅ Safe number conversion
     const price = Number(eventResult.rows[0].ticket_price);
-    const qty = Number(quantity) || 1;
+    const qty = Number(quantity || 1);
 
-    if (isNaN(price) || price <= 0) {
-      return res.status(400).json({ message: "Invalid event price" });
-    }
-
-    // 🔥 FIXED TOTAL CALCULATION (no NaN possible)
     const amount = price * qty;
+
+    console.log("AMOUNT:", amount);
 
     await pool.query(
       `INSERT INTO tickets (
-        id,
-        event_id,
-        user_name,
-        phone,
-        email,
-        quantity,
-        method,
-        transaction_id,
-        amount,
-        status
+        id, event_id, user_name, phone,
+        email, quantity, method,
+        transaction_id, amount, status
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
       [
         uuidv4(),
@@ -339,14 +320,14 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       ]
     );
 
-    return res.json({
-      success: true,
-      amount,
-      message: "Ticket purchased successfully",
-    });
+    return res.json({ success: true, amount });
+
   } catch (err) {
     console.error("PURCHASE ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 });
 // ================= ORGANIZERS =================
