@@ -21,11 +21,10 @@ if (!fs.existsSync(uploadDir)) {
 
 // ================= DATABASE =================
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  connectionString: "postgresql://kistet_addis_user:zoH32dGQxzHYnTOfRU6Oe5lo3Pt3SJUB@dpg-d7clhcn7f7vs739ic3h0-a.frankfurt-postgres.render.com/kistet_addis",
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 pool
@@ -290,6 +289,24 @@ app.get("/api/organizers", authenticateToken, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// ================= CREATE PAYMENT ACCOUNT =================
+app.post("/api/payments/accounts", async (req, res) => {
+  try {
+    const { name, account_number, bank } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO payment_accounts (id, name, account_number, bank)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [uuidv4(), name, account_number, bank]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("PAYMENT ACCOUNT ERROR:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
