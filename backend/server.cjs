@@ -186,6 +186,39 @@ app.post("/api/events", authenticateToken, async (req, res) => {
     });
   }
 });
+// ================= CREATE ORGANIZER (FULL) =================
+app.post("/api/organizers", authenticateToken, async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+
+    // Check existing
+    const exists = await pool.query(
+      "SELECT * FROM users WHERE email=$1",
+      [email]
+    );
+
+    if (exists.rows.length > 0) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert user
+    const result = await pool.query(
+      `INSERT INTO users (id, name, email, password, role, phone)
+       VALUES ($1, $2, $3, $4, 'organizer', $5)
+       RETURNING id, name, email, role`,
+      [uuidv4(), name, email, hashedPassword, phone]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("CREATE ORGANIZER ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // ================= ADMIN METRICS =================
 app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
@@ -312,6 +345,48 @@ app.post("/api/payments/accounts", async (req, res) => {
     );
 
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+app.put("/api/users/profile", authenticateToken, async (req, res) => {
+  try {
+    const { name, email, currentPassword, newPassword } = req.body;
+
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = userResult.rows[0];
+
+    let updatedPassword = user.password;
+
+    if (newPassword) {
+      const valid = await bcrypt.compare(currentPassword, user.password);
+
+      if (!valid) {
+        return res.status(400).json({ message: "Current password incorrect" });
+      }
+
+      updatedPassword = await bcrypt.hash(newPassword, 10);
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET name=$1, email=$2, password=$3
+       WHERE id=$4
+       RETURNING id, name, email, role`,
+      [name, email, updatedPassword, req.user.id]
+    );
+
+    res.json(result.rows[0]);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
