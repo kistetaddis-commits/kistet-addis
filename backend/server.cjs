@@ -430,3 +430,4 @@ app.get("/api/health", (req, res) => {
 app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${port}`);
 });
+console.log("CONNECTED DB:", process.env.DATABASE_URL);
