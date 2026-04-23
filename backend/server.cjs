@@ -292,22 +292,29 @@ app.get("/api/organizers", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-// ================= CREATE PAYMENT ACCOUNT =================
 app.post("/api/payments/accounts", async (req, res) => {
   try {
-    const { name, account_number, bank } = req.body;
+    const { method_name, account_number, account_name, description } = req.body;
 
     const result = await pool.query(
-      `INSERT INTO payment_accounts (id, name, account_number, bank)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [uuidv4(), name, account_number, bank]
+      `INSERT INTO payment_accounts (
+        id, method_name, account_number, account_name, description
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *`,
+      [
+        uuidv4(),
+        method_name,
+        account_number,
+        account_name,
+        description
+      ]
     );
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("PAYMENT ACCOUNT ERROR:", err.message);
-    res.status(500).json({ message: "Server error" });
+    console.error(err);
+    res.status(500).json({ message: err.message });
   }
 });
 
