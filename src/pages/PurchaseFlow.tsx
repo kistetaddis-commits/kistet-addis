@@ -183,8 +183,10 @@ const PurchaseFlow: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Quantity</p>
-                  <p className="text-2xl font-black">{formData.quantity} Tickets</p>
-                </div>
+                   <p className="text-2xl font-black">
+  {Math.max(0, parseInt(formData.quantity || 0))} Tickets
+</p>
+                
               </div>
               
               <div className="flex items-center gap-5">
@@ -193,7 +195,10 @@ const PurchaseFlow: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
-                  <p className="text-4xl font-black">{formData.quantity * event.price} <span className="text-sm opacity-60">ETB</span></p>
+                  <p className="text-4xl font-black">
+  {(parseFloat(event?.price ?? 0) * parseInt(formData?.quantity ?? 0)).toLocaleString()}{" "}
+  <span className="text-sm opacity-60">ETB</span>
+</p>
                 </div>
               </div>
             </div>
