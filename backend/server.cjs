@@ -232,6 +232,48 @@ pool.query("SELECT current_database(), current_user")
 `)
 .then(() => console.log("✅ phone column ensured"))
 .catch(err => console.log(err));
+
+
+
+
+
+const BASE_URL =
+  process.env.BASE_URL || `http://localhost:${port}`;
+
+app.get("/api/events", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        title,
+        description,
+        event_date AS date,
+        location,
+        ticket_price,
+        total_tickets,
+        sold_tickets,
+        image_url,
+        created_at
+      FROM events
+      ORDER BY created_at DESC
+    `);
+
+    const events = result.rows.map(event => ({
+      ...event,
+      image_url: event.image_url
+        ? event.image_url.startsWith("http")
+          ? event.image_url
+          : `${BASE_URL}${event.image_url}`   // ✅ FIX HERE
+        : null
+    }));
+
+    res.json(events);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
 // ================= CREATE ORGANIZER (FULL) =================
 app.post("/api/organizers", authenticateToken, async (req, res) => {
   try {
