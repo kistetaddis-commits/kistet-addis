@@ -233,47 +233,6 @@ pool.query("SELECT current_database(), current_user")
 .then(() => console.log("✅ phone column ensured"))
 .catch(err => console.log(err));
 
-
-
-
-
-const BASE_URL =
-  process.env.BASE_URL || `http://localhost:${port}`;
-
-app.get("/api/events", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        id,
-        title,
-        description,
-        event_date AS date,
-        location,
-        ticket_price,
-        total_tickets,
-        sold_tickets,
-        image_url,
-        created_at
-      FROM events
-      ORDER BY created_at DESC
-    `);
-
-    const events = result.rows.map(event => ({
-      ...event,
-      image_url: event.image_url
-        ? event.image_url.startsWith("http")
-          ? event.image_url
-          : `${BASE_URL}${event.image_url}`   // ✅ FIX HERE
-        : null
-    }));
-
-    res.json(events);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-});
 // ================= CREATE ORGANIZER (FULL) =================
 app.post("/api/organizers", authenticateToken, async (req, res) => {
   try {
@@ -367,12 +326,22 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
   try {
     console.log("BODY:", req.body);
 
-    const { event_id, user_name, phone, email, quantity, method, transaction_id } = req.body;
+    const {
+      event_id,
+      user_name,
+      phone,
+      email,
+      quantity,
+      method,
+      transaction_id,
+    } = req.body;
 
+    // ✅ Validate required fields
     if (!event_id || !user_name || !phone) {
-      return res.status(400).json({ message: "Missing fields" });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // 🔥 Get event price from DB (secure, never trust frontend)
     const eventResult = await pool.query(
       "SELECT ticket_price FROM events WHERE id = $1",
       [event_id]
@@ -382,18 +351,39 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    const price = Number(eventResult.rows[0].ticket_price);
-    const qty = Number(quantity || 1);
+    // ✅ Safe number conversion (prevents NaN)
+    const price = parseFloat(eventResult.rows[0].ticket_price);
 
+    if (isNaN(price) || price <= 0) {
+      return res.status(400).json({ message: "Invalid ticket price" });
+    }
+
+    const qty = parseInt(quantity, 10) || 1;
+
+    if (qty <= 0) {
+      return res.status(400).json({ message: "Invalid quantity" });
+    }
+
+    // 🔥 FINAL SAFE TOTAL CALCULATION
     const amount = price * qty;
 
+    console.log("PRICE:", price);
+    console.log("QTY:", qty);
     console.log("AMOUNT:", amount);
 
+    // 🧾 Insert ticket
     await pool.query(
       `INSERT INTO tickets (
-        id, event_id, user_name, phone,
-        email, quantity, method,
-        transaction_id, amount, status
+        id,
+        event_id,
+        user_name,
+        phone,
+        email,
+        quantity,
+        method,
+        transaction_id,
+        amount,
+        status
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
       [
         uuidv4(),
@@ -408,13 +398,19 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       ]
     );
 
-    return res.json({ success: true, amount });
+    return res.status(200).json({
+      success: true,
+      amount,
+      message: "Ticket purchased successfully",
+    });
 
   } catch (err) {
-    console.error("PURCHASE ERROR:", err);
+    console.error("❌ PURCHASE ERROR:", err);
+
     return res.status(500).json({
+      success: false,
       message: "Server error",
-      error: err.message
+      error: err.message,
     });
   }
 });
