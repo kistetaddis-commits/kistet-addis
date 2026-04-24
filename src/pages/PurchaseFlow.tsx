@@ -191,6 +191,7 @@ const total = (price > 0 ? price : 0) * (quantity > 0 ? quantity : 0);
 </p>
                 
               </div>
+              </div>
               
               <div className="flex items-center gap-5">
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center">
