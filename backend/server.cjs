@@ -415,6 +415,8 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
     });
   }
 });
+console.log("PRICE:", event?.price);
+console.log("QTY:", formData?.quantity);
 // ================= ORGANIZERS =================
 app.get("/api/organizers", authenticateToken, async (req, res) => {
   try {
