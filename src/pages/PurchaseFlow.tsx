@@ -152,10 +152,9 @@ const PurchaseFlow: React.FC = () => {
         return '#';
     }
   };
-const price = Number(event?.price);
-const quantity = Number(formData?.quantity);
-
-const total = (price > 0 ? price : 0) * (quantity > 0 ? quantity : 0);
+const price = Number(String(event?.price).replace(/[^\d.]/g, "")) || 0;
+const quantity = Number(formData?.quantity) || 0;
+const total = price * quantity;
   const getLocalizedTitle = () => {
     if (!event) return '';
     if (typeof event.title === 'string') return event.title;
@@ -192,7 +191,7 @@ const total = (price > 0 ? price : 0) * (quantity > 0 ? quantity : 0);
                 
               </div>
               </div>
-              
+              </div>
               <div className="flex items-center gap-5">
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center">
                   <CreditCard className="w-7 h-7" />
@@ -200,11 +199,10 @@ const total = (price > 0 ? price : 0) * (quantity > 0 ? quantity : 0);
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
                   <p className="text-4xl font-black">
-  {total.toLocaleString()}{" "}
-  <span className="text-sm opacity-60">ETB</span>
+  {total.toLocaleString()} <span className="text-sm opacity-60">ETB</span>
 </p>
                 </div>
-              </div>
+              
             </div>
           </div>
         </div>
