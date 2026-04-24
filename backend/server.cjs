@@ -336,12 +336,12 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       transaction_id,
     } = req.body;
 
-    // ✅ Validate required fields
+    // 🔐 Validate required fields
     if (!event_id || !user_name || !phone) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 🔥 Get event price from DB (secure, never trust frontend)
+    // 🔥 Get event price from database (secure source of truth)
     const eventResult = await pool.query(
       "SELECT ticket_price FROM events WHERE id = $1",
       [event_id]
@@ -353,25 +353,25 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
 
     // ✅ Safe number conversion (prevents NaN)
     const price = parseFloat(eventResult.rows[0].ticket_price);
+    const qty = parseInt(quantity, 10) || 1;
 
+    // 🔐 Validate numbers
     if (isNaN(price) || price <= 0) {
       return res.status(400).json({ message: "Invalid ticket price" });
     }
-
-    const qty = parseInt(quantity, 10) || 1;
 
     if (qty <= 0) {
       return res.status(400).json({ message: "Invalid quantity" });
     }
 
-    // 🔥 FINAL SAFE TOTAL CALCULATION
+    // 🔥 FINAL SAFE CALCULATION
     const amount = price * qty;
 
     console.log("PRICE:", price);
     console.log("QTY:", qty);
     console.log("AMOUNT:", amount);
 
-    // 🧾 Insert ticket
+    // 🧾 Insert ticket into DB
     await pool.query(
       `INSERT INTO tickets (
         id,
@@ -398,6 +398,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       ]
     );
 
+    // ✅ Return clean response
     return res.status(200).json({
       success: true,
       amount,
