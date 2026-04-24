@@ -152,9 +152,7 @@ const PurchaseFlow: React.FC = () => {
         return '#';
     }
   };
-const price = Number(String(event?.price).replace(/[^\d.]/g, "")) || 0;
-const quantity = Number(formData?.quantity) || 0;
-const total = price * quantity;
+
   const getLocalizedTitle = () => {
     if (!event) return '';
     if (typeof event.title === 'string') return event.title;
@@ -185,24 +183,19 @@ const total = price * quantity;
                 </div>
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Quantity</p>
-                   <p className="text-2xl font-black">
-  {Math.max(0, quantity)} Tickets
-</p>
-                
+                  <p className="text-2xl font-black">{formData.quantity} Tickets</p>
+                </div>
               </div>
-              </div>
-              </div>
+              
               <div className="flex items-center gap-5">
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center">
                   <CreditCard className="w-7 h-7" />
                 </div>
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
-                  <p className="text-4xl font-black">
-  {total.toLocaleString()} <span className="text-sm opacity-60">ETB</span>
-</p>
+                  <p className="text-4xl font-black">{formData.quantity * event.price} <span className="text-sm opacity-60">ETB</span></p>
                 </div>
-              
+              </div>
             </div>
           </div>
         </div>
@@ -334,11 +327,9 @@ const total = price * quantity;
                 </div>
 
                 <div className="p-8 bg-gray-900 rounded-[2.5rem] text-white space-y-6">
-  <p className="text-4xl font-black">
-    {((Number(formData?.quantity) || 0) * (Number(event?.price) || 0)).toLocaleString()}{" "}
-    <span className="text-sm opacity-60">ETB</span>
-  
-
+                   <p className="text-4xl font-black">
+  {(Number(formData.quantity) || 0) * (Number(event?.price) || 0)}{" "}
+  <span className="text-sm opacity-60">ETB</span>
 </p>
                    <div className="bg-white/10 p-6 rounded-2xl border border-white/5 space-y-4">
                      <div>
