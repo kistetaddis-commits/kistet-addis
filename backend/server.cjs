@@ -152,7 +152,7 @@ app.post("/api/events", authenticateToken, async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO events (
-        id, title, description, event_date,
+        id, title, description, date,
         location, latitude, longitude,
         ticket_price, total_tickets,
         sold_tickets,
