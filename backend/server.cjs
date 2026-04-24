@@ -107,21 +107,56 @@ app.post("/api/auth/login", async (req, res) => {
 // ================= EVENTS =================
 app.get("/api/events", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM events ORDER BY created_at DESC"
-    );
+    const result = await pool.query(`
+      SELECT 
+        id,
+        title,
+        description,
+        event_date AS date,   -- ✅ FIX: frontend uses "date"
+        location,
+        latitude,
+        longitude,
+        ticket_price,
+        total_tickets,
+        sold_tickets,
+        selling_deadline,
+        event_type,
+        image_url,
+        created_at
+      FROM events
+      ORDER BY created_at DESC
+    `);
+
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("GET EVENTS ERROR:", err);
+    res.status(500).json({ message: err.message });
   }
 });
 
+
+// ================= GET SINGLE EVENT =================
 app.get("/api/events/:id", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM events WHERE id=$1",
-      [req.params.id]
-    );
+    const result = await pool.query(`
+      SELECT 
+        id,
+        title,
+        description,
+        event_date AS date,   -- ✅ FIX here too
+        location,
+        latitude,
+        longitude,
+        ticket_price,
+        total_tickets,
+        sold_tickets,
+        selling_deadline,
+        event_type,
+        image_url,
+        created_at
+      FROM events
+      WHERE id = $1
+    `, [req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Event not found" });
@@ -129,7 +164,8 @@ app.get("/api/events/:id", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("GET EVENT ERROR:", err);
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -152,7 +188,7 @@ app.post("/api/events", authenticateToken, async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO events (
-        id, title, description, date,
+        id, title, description, event_date,
         location, latitude, longitude,
         ticket_price, total_tickets,
         sold_tickets,
