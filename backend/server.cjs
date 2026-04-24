@@ -190,6 +190,12 @@ pool.query("SELECT current_database(), current_user")
   .then(res => console.log("DB INFO:", res.rows[0]))
   .catch(err => console.log(err));
   console.log("DB URL:", process.env.DATABASE_URL);
+  pool.query(`
+  ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS phone TEXT
+`)
+.then(() => console.log("✅ phone column ensured"))
+.catch(err => console.log(err));
 // ================= CREATE ORGANIZER (FULL) =================
 app.post("/api/organizers", authenticateToken, async (req, res) => {
   try {
