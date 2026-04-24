@@ -198,7 +198,7 @@ const PurchaseFlow: React.FC = () => {
                   <p className="text-4xl font-black">
   {(parseFloat(event?.price ?? 0) * parseInt(formData?.quantity ?? 0)).toLocaleString()}{" "}
   <span className="text-sm opacity-60">ETB</span>
-</p>
+</p></div>
                 </div>
               </div>
             </div>
