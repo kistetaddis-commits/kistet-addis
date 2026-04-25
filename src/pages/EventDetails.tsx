@@ -187,7 +187,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ eventId, onBack }) => {
                 <span>{t('standardTicket')}</span>
 
                 <span className="text-3xl font-bold text-blue-600">
-                  {event.ticket_price ?? 0} ETB
+                  {event.price ?? 0} ETB
                 </span>
               </div>
 
