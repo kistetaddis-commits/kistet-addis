@@ -152,58 +152,48 @@ const PurchaseFlow: React.FC = () => {
         return '#';
     }
   };
-  console.log("QTY:", formData.quantity);
-console.log("PRICE:", event?.ticket_price);
-const quantity = Number(formData.quantity) || 0;
-const price = Number(event?.ticket_price) || 0;
-const total = quantity * price;
-  const getLocalizedTitle = () => {
-    if (!event) return '';
-    if (typeof event.title === 'string') return event.title;
-    return (event.title as any)[language] || (event.title as any).en || '';
-  };
+  if (!event) {
+  return <p className="text-white">Loading event...</p>;
+}
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-12">
-      <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row min-h-[700px]">
-        {/* Left Panel */}
-        <div className="bg-blue-600 md:w-96 p-10 text-white flex flex-col">
-          <button onClick={() => navigate(-1)} className="mb-10 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          
-          <div className="flex-grow">
-            <div className="bg-white/10 px-4 py-2 rounded-xl w-fit mb-6">
-              <p className="text-[10px] font-black uppercase tracking-widest">Event Summary</p>
-            </div>
-            <h2 className="text-3xl font-black mb-8 leading-tight">
-              {getLocalizedTitle()}
-            </h2>
-            
-            <div className="space-y-8">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center">
-                  <TicketIcon className="w-7 h-7" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Quantity</p>
-                  <p className="text-2xl font-black">{formData.quantity} Tickets</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center">
-                  <CreditCard className="w-7 h-7" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
-<p className="text-4xl font-black">
-  {total} <span className="text-sm opacity-60">ETB</span>
-</p>            </div>
-              </div>
-            </div>
+const quantity = Number(formData?.quantity ?? 0);
+const price = Number(event?.ticket_price ?? 0);
+const total = quantity * price;
+
+console.log("QTY:", quantity);
+console.log("PRICE:", price);
+console.log("TOTAL:", total);
+
+return (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-12">
+    <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden border border-gray-100 flex flex-col md:flex-row min-h-[700px]">
+
+      {/* Left Panel */}
+      <div className="bg-blue-600 md:w-96 p-10 text-white flex flex-col">
+
+        {/* ...other UI... */}
+
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center">
+            <CreditCard className="w-7 h-7" />
+          </div>
+
+          <div>
+            <p className="text-xs font-bold opacity-70 uppercase tracking-wider">
+              Total Amount
+            </p>
+
+            <p className="text-4xl font-black">
+              {total}{" "}
+              <span className="text-sm opacity-60">ETB</span>
+            </p>
           </div>
         </div>
+
+      </div>
+    </div>
+  </div>
+);
 
         {/* Right Panel */}
         <div className="flex-grow p-8 md:p-16 bg-white overflow-y-auto">
