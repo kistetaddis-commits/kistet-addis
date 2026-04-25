@@ -193,7 +193,7 @@ const PurchaseFlow: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
-                  <p className="text-4xl font-black">{formData.quantity * event.price} <span className="text-sm opacity-60">ETB</span></p>
+                  <p className="text-4xl font-black">{formData.quantity * event.ticket_price} <span className="text-sm opacity-60">ETB</span></p>
                 </div>
               </div>
             </div>
