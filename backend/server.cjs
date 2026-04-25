@@ -352,7 +352,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
     }
 
     // ✅ Safe number conversion (prevents NaN)
-    const price = parseFloat(eventResult.rows[0].ticket_price);
+    const price = parseFloat(eventResult.rows[0].price);
     const qty = parseInt(quantity, 10) || 1;
 
     // 🔐 Validate numbers
