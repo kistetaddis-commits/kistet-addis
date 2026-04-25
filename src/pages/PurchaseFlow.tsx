@@ -121,7 +121,13 @@ const PurchaseFlow: React.FC = () => {
       setIsRefreshing(false);
     }
   };
+const getLocalizedTitle = () => {
+  if (!event) return "Unknown Event";
 
+  if (typeof event.title === "string") return event.title;
+
+  return event.title?.[language] || event.title?.en || "Unknown Event";
+};
   const handleDownloadPDF = () => {
     if (!createdTicket || createdTicket.status !== 'approved' || !event) return;
     
@@ -191,9 +197,10 @@ return (
         </div>
 
       </div>
-    </div>
-  </div>
-);
+    
+    
+  
+
 
         {/* Right Panel */}
         <div className="flex-grow p-8 md:p-16 bg-white overflow-y-auto">
