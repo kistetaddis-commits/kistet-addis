@@ -343,7 +343,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
 
     // 🔥 Get event price from database (secure source of truth)
     const eventResult = await pool.query(
-      "SELECT price FROM events WHERE id = $1",
+      "SELECT ticket_price FROM events WHERE id = $1",
       [event_id]
     );
 
@@ -352,7 +352,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
     }
 
     // ✅ Safe number conversion (prevents NaN)
-    const price = parseFloat(eventResult.rows[0].price);
+    const price = parseFloat(eventResult.rows[0].ticket_price);
     const qty = parseInt(quantity, 10) || 1;
 
     // 🔐 Validate numbers
