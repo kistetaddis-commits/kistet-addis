@@ -343,7 +343,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
 
     // 🔥 Get event price from database (secure source of truth)
     const eventResult = await pool.query(
-      "SELECT ticket_price FROM events WHERE id = $1",
+      "SELECT price FROM events WHERE id = $1",
       [event_id]
     );
 
