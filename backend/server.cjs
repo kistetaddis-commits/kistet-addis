@@ -324,8 +324,6 @@ app.get("/api/tickets/approved", authenticateToken, async (req, res) => {
 // ================= PURCHASE TICKET =================
 app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-
     const {
       event_id,
       user_name,
@@ -341,37 +339,33 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 🔥 Get event price from database (secure source of truth)
+    // 🔥 Get price from DB (source of truth)
     const eventResult = await pool.query(
       "SELECT ticket_price FROM events WHERE id = $1",
       [event_id]
     );
 
-    if (!eventResult.rows.length) {
+    if (eventResult.rows.length === 0) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // ✅ Safe number conversion (prevents NaN)
-    const price = parseFloat(eventResult.rows[0].ticket_price);
-    const qty = parseInt(quantity, 10) || 1;
+    // ✅ Convert safely
+    const price = Number(eventResult.rows[0].ticket_price);
+    const qty = Number(quantity) || 1;
 
     // 🔐 Validate numbers
-    if (isNaN(price) || price <= 0) {
+    if (!price || price <= 0) {
       return res.status(400).json({ message: "Invalid ticket price" });
     }
 
-    if (qty <= 0) {
+    if (!qty || qty <= 0) {
       return res.status(400).json({ message: "Invalid quantity" });
     }
 
-    // 🔥 FINAL SAFE CALCULATION
+    // 💰 Calculate total
     const amount = price * qty;
 
-    console.log("PRICE:", price);
-    console.log("QTY:", qty);
-    console.log("AMOUNT:", amount);
-
-    // 🧾 Insert ticket into DB
+    // 🧾 Save ticket
     await pool.query(
       `INSERT INTO tickets (
         id,
@@ -398,8 +392,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       ]
     );
 
-    // ✅ Return clean response
-    return res.status(200).json({
+    return res.json({
       success: true,
       amount,
       message: "Ticket purchased successfully",
@@ -407,11 +400,9 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
 
   } catch (err) {
     console.error("❌ PURCHASE ERROR:", err);
-
     return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: err.message,
+      message: err.message,
     });
   }
 });

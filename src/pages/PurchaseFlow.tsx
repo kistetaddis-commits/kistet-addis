@@ -152,7 +152,9 @@ const PurchaseFlow: React.FC = () => {
         return '#';
     }
   };
-
+const quantity = Number(formData.quantity) || 0;
+const price = Number(event?.ticket_price) || 0;
+const total = quantity * price;
   const getLocalizedTitle = () => {
     if (!event) return '';
     if (typeof event.title === 'string') return event.title;
@@ -194,9 +196,12 @@ const PurchaseFlow: React.FC = () => {
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
 <p className="text-4xl font-black">
-  {(Number(formData.quantity) || 0) * (Number(event?.ticket_price) || 0)}{" "}
+  {event
+    ? (Number(formData.quantity) || 0) *
+      (Number(event.ticket_price) || 0)
+    : 0}{" "}
   <span className="text-sm opacity-60">ETB</span>
-</p>                </div>
+</p>              </div>
               </div>
             </div>
           </div>
