@@ -116,7 +116,7 @@ app.get("/api/events", async (req, res) => {
         location,
         latitude,
         longitude,
-        price,
+        ticket_price,
         total_tickets,
         sold_tickets,
         selling_deadline,
@@ -147,7 +147,7 @@ app.get("/api/events/:id", async (req, res) => {
         location,
         latitude,
         longitude,
-        price,
+        ticket_price,
         total_tickets,
         sold_tickets,
         selling_deadline,
@@ -190,7 +190,7 @@ app.post("/api/events", authenticateToken, async (req, res) => {
       `INSERT INTO events (
         id, title, description, event_date,
         location, latitude, longitude,
-        price, total_tickets,
+        ticket_price, total_tickets,
         sold_tickets,
         selling_deadline, event_type,
         image_url, created_by
