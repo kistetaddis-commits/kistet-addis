@@ -152,6 +152,8 @@ const PurchaseFlow: React.FC = () => {
         return '#';
     }
   };
+  console.log("QTY:", formData.quantity);
+console.log("PRICE:", event?.ticket_price);
 const quantity = Number(formData.quantity) || 0;
 const price = Number(event?.ticket_price) || 0;
 const total = quantity * price;
@@ -196,12 +198,8 @@ const total = quantity * price;
                 <div>
                   <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Total Amount</p>
 <p className="text-4xl font-black">
-  {event
-    ? (Number(formData.quantity) || 0) *
-      (Number(event.ticket_price) || 0)
-    : 0}{" "}
-  <span className="text-sm opacity-60">ETB</span>
-</p>              </div>
+  {total} <span className="text-sm opacity-60">ETB</span>
+</p>            </div>
               </div>
             </div>
           </div>
