@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+console.log("DB RESULT:", eventResult.rows);
 const express = require("express");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
