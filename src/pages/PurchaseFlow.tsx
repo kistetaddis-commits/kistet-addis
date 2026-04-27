@@ -66,7 +66,7 @@ const PurchaseFlow: React.FC = () => {
 
   // ✅ SAFE TOTAL CALCULATION (FIXED)
   const quantity = Number(formData?.quantity ?? 0);
-const price = Number(event?.ticket_price ?? 0);
+const price = Number(event?.price ?? 0);
 const total = quantity * price;
 
   const handleStep1Submit = () => {
@@ -151,7 +151,7 @@ const total = quantity * price;
 
               {/* ✅ FIXED TOTAL (NO NaN POSSIBLE) */}
               <p className="text-4xl font-black">
-                {isNaN(total) ? 0 : total}{" "}
+                {total}{" "}
                 <span className="text-sm opacity-60">ETB</span>
               </p>
             </div>
@@ -192,7 +192,7 @@ const total = quantity * price;
 
                 {/* ✅ SAFE TOTAL DISPLAY */}
                 <p className="text-3xl font-black">
-                  {isNaN(total) ? 0 : total} ETB
+                  {total} ETB
                 </p>
 
                 <input
