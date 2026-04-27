@@ -21,7 +21,7 @@ const eventSchema = z.object({
   longitude: z.number(),
 
   total_tickets: z.number().min(1),
-  ticket_price: z.number().min(0),
+  price: z.number().min(0),
 
   selling_deadline: z.string().min(1),
 
@@ -104,7 +104,7 @@ const EventForm: React.FC = () => {
         latitude: data.latitude,
         longitude: data.longitude,
 
-        price: data.ticket_price,
+        price: data.price,
         total_tickets: data.total_tickets,
 
         event_type: data.event_type,
@@ -136,7 +136,7 @@ const EventForm: React.FC = () => {
 
       <input type="datetime-local" {...register('date')} />
 
-      <input type="number" {...register('ticket_price', { valueAsNumber: true })} />
+      <input type="number" {...register('price', { valueAsNumber: true })} />
       <input type="number" {...register('total_tickets', { valueAsNumber: true })} />
 
       <input {...register('location')} placeholder="Location" />

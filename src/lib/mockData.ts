@@ -10,7 +10,7 @@ export const MOCK_EVENTS: Event[] = [
     date: "2024-05-20",
     location: "Meskel Square, Addis Ababa",
 
-    ticket_price: 500,
+    price: 500,
     image_url:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80",
 
