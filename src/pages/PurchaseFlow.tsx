@@ -66,8 +66,8 @@ const PurchaseFlow: React.FC = () => {
 
   // ✅ SAFE TOTAL CALCULATION (FIXED)
   const quantity = Number(formData?.quantity ?? 0);
-  const price = Number(event?.ticket_price ?? 0);
-  const total = quantity * price;
+const price = Number(event?.ticket_price ?? 0);
+const total = quantity * price;
 
   const handleStep1Submit = () => {
     if (!formData.fullName || !formData.phone) {
