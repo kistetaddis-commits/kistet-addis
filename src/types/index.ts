@@ -45,7 +45,7 @@ export interface Event {
 
   // FIX: support both naming styles
   price?: number;         // FIX old UI errors
-  ticket_price: number;   // NEW standard
+  price: number;   // NEW standard
 
   total_tickets?: number;
   sold_tickets?: number;

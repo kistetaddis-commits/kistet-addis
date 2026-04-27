@@ -18,9 +18,9 @@ export type Event = {
 
   image_url?: string;
 
-  ticket_price: number;
+  price: number;
 
-  price?: number;
+  
 
   total_tickets?: number;
 

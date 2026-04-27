@@ -30,7 +30,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
         />
 
         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-blue-600 font-bold text-sm shadow-sm">
-          {t("currency")} {event.ticket_price}
+          {t("currency")} {event.price}
         </div>
 
         <div className="absolute bottom-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm">

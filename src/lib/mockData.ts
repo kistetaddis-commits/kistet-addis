@@ -32,7 +32,7 @@ export const MOCK_EVENTS: Event[] = [
     date: "2024-06-12",
     location: "Millennium Hall, Addis Ababa",
 
-    ticket_price: 300,
+    price: 300,
     image_url:
       "https://images.unsplash.com/photo-1540575861501-7ad0582373f1?auto=format&fit=crop&q=80",
 
@@ -54,7 +54,7 @@ export const MOCK_EVENTS: Event[] = [
     date: "2024-05-25",
     location: "Skylight Hotel, Addis Ababa",
 
-    ticket_price: 800,
+    price: 800,
     image_url:
       "https://images.unsplash.com/photo-1530549387631-6c129c1abc7a?auto=format&fit=crop&q=80",
 

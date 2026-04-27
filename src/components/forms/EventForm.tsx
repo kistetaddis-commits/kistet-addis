@@ -55,7 +55,7 @@ const EventForm: React.FC = () => {
       longitude: 38.74,
       event_type: 'Adult Music',
       total_tickets: 100,
-      ticket_price: 0,
+      price: 0,
     },
   });
 

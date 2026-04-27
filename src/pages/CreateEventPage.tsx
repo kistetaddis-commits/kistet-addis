@@ -69,7 +69,7 @@ const eventSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   total_tickets: z.number().min(1, 'Total tickets must be at least 1'),
-  ticket_price: z.number().min(0, 'Ticket price must be at least 0'),
+  price: z.number().min(0, 'Ticket price must be at least 0'),
   selling_deadline: z.date(),
   event_type: z.enum(['Kid Program', 'Adult Music', 'Conference', 'Sport']),
 }).refine(data => data.selling_deadline < data.date, {
@@ -117,7 +117,7 @@ const CreateEventPage: React.FC = () => {
     latitude: 9.03,
     longitude: 38.74,
     total_tickets: 100,
-    ticket_price: 0,
+    price: 0,
     event_type: 'Conference',
   },
 });
@@ -170,7 +170,7 @@ const CreateEventPage: React.FC = () => {
       location: values.location,
       latitude: Number(values.latitude),
       longitude: Number(values.longitude),
-      price: Number(values.ticket_price),
+      price: Number(values.price),
       total_tickets: Number(values.total_tickets),
       selling_deadline: values.selling_deadline?.toISOString(),
       event_type: values.event_type,
@@ -476,7 +476,7 @@ const CreateEventPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="ticket_price"
+                      name="price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-black text-gray-700">Ticket Price (ETB)</FormLabel>
