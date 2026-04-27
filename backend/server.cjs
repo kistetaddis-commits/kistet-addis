@@ -116,7 +116,7 @@ app.get("/api/events", async (req, res) => {
         location,
         latitude,
         longitude,
-        ticket_price,
+        price AS ticket_price,
         total_tickets,
         sold_tickets,
         selling_deadline,
@@ -340,17 +340,17 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
     }
 
     // 🔥 Get price from DB (source of truth)
-    const eventResult = await pool.query(
-      "SELECT ticket_price FROM events WHERE id = $1",
-      [event_id]
-    );
+   const eventResult = await pool.query(
+  "SELECT price FROM events WHERE id = $1",
+  [event_id]
+);
 
     if (eventResult.rows.length === 0) {
       return res.status(404).json({ message: "Event not found" });
     }
 
     // ✅ Convert safely
-    const price = Number(eventResult.rows[0].ticket_price);
+    const price = Number(eventResult.rows[0].price);
     const qty = Number(quantity) || 1;
 
     // 🔐 Validate numbers
