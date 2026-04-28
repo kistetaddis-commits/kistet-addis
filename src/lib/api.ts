@@ -17,6 +17,7 @@ async function handleResponse(res: Response) {
   const text = await res.text();
 
   let data: any = {};
+
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
@@ -59,7 +60,11 @@ export const api = {
     });
 
     const data = await handleResponse(res);
-    if (data.token) localStorage.setItem("token", data.token);
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+
     return data;
   },
 
@@ -71,7 +76,11 @@ export const api = {
     });
 
     const data = await handleResponse(res);
-    if (data.token) localStorage.setItem("token", data.token);
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+
     return data;
   },
 
@@ -79,10 +88,13 @@ export const api = {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
-  logout: () => localStorage.removeItem("token"),
+  logout: () => {
+    localStorage.removeItem("token");
+  },
 
   // ================= EVENTS =================
   getEvents: async () => {
@@ -104,6 +116,7 @@ export const api = {
       },
       body: JSON.stringify(data),
     });
+
     return handleResponse(res);
   },
 
@@ -115,7 +128,7 @@ export const api = {
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
       headers: {
-        ...authHeader(), // ❗ no Content-Type for FormData
+        ...authHeader(),
       },
       body: form,
     });
@@ -143,6 +156,7 @@ export const api = {
     const res = await fetch(`${API_URL}/tickets/pending`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
@@ -151,6 +165,7 @@ export const api = {
       method: "PUT",
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
@@ -159,6 +174,7 @@ export const api = {
       method: "PUT",
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
@@ -167,10 +183,15 @@ export const api = {
     const res = await fetch(`${API_URL}/payments/pending`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
-  verifyPayment: async (id: string, status: string, reason?: string) => {
+  verifyPayment: async (
+    id: string,
+    status: "verified" | "rejected",
+    reason?: string
+  ) => {
     const res = await fetch(`${API_URL}/payments/verify/${id}`, {
       method: "PUT",
       headers: {
@@ -179,6 +200,7 @@ export const api = {
       },
       body: JSON.stringify({ status, reason }),
     });
+
     return handleResponse(res);
   },
 
