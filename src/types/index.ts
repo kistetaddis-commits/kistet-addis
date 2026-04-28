@@ -44,7 +44,7 @@ export interface Event {
   longitude?: number;
 
   // FIX: support both naming styles
-  price?: number;         // FIX old UI errors
+          // FIX old UI errors
   price: number;   // NEW standard
 
   total_tickets?: number;
