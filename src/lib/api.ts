@@ -68,22 +68,6 @@ export const api = {
     return data;
   },
 
-  loginWithUsernameOrEmail: async (identifier: string, password: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: identifier, password }),
-    });
-
-    const data = await handleResponse(res);
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-    }
-
-    return data;
-  },
-
   getMe: async () => {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: authHeader(),
@@ -103,6 +87,12 @@ export const api = {
   },
 
   getEvent: async (id: string) => {
+    const res = await fetch(`${API_URL}/events/${id}`);
+    return handleResponse(res);
+  },
+
+  // ✅ FIXED (alias included for your error)
+  getEventById: async (id: string) => {
     const res = await fetch(`${API_URL}/events/${id}`);
     return handleResponse(res);
   },
@@ -152,6 +142,15 @@ export const api = {
     return handleResponse(res);
   },
 
+  // ✅ FIXED (alias included)
+  getTicketById: async (id: string) => {
+    const res = await fetch(`${API_URL}/tickets/${id}`, {
+      headers: authHeader(),
+    });
+
+    return handleResponse(res);
+  },
+
   getPendingTickets: async () => {
     const res = await fetch(`${API_URL}/tickets/pending`, {
       headers: authHeader(),
@@ -187,11 +186,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  verifyPayment: async (
-    id: string,
-    status: "verified" | "rejected",
-    reason?: string
-  ) => {
+  verifyPayment: async (id: string, status: string, reason?: string) => {
     const res = await fetch(`${API_URL}/payments/verify/${id}`, {
       method: "PUT",
       headers: {
