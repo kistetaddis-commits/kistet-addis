@@ -285,39 +285,45 @@ app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
 });
 
 // ================= PAYMENTS =================
-app.get("/api/payments/pending", authenticateToken, async (req, res) => {
+aapp.get("/api/payments/pending", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM payments WHERE status='pending' ORDER BY created_at DESC"
+      "SELECT * FROM payments WHERE status = $1 ORDER BY created_at DESC",
+      ["pending"]
     );
+
     res.json(result.rows);
   } catch (err) {
+    console.error("PAYMENTS ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 // ================= TICKETS =================
 
-// 🔥 FIXED: pending tickets route (THIS WAS YOUR ERROR)
 app.get("/api/tickets/pending", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM tickets WHERE status='pending' ORDER BY created_at DESC"
+      "SELECT * FROM tickets WHERE status = $1 ORDER BY created_at DESC",
+      ["pending"]
     );
+
     res.json(result.rows);
   } catch (err) {
+    console.error("PENDING TICKETS ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// 🔥 optional but useful
 app.get("/api/tickets/approved", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM tickets WHERE status='approved' ORDER BY created_at DESC"
+      "SELECT * FROM tickets WHERE status = $1 ORDER BY created_at DESC",
+      ["approved"]
     );
+
     res.json(result.rows);
   } catch (err) {
+    console.error("APPROVED TICKETS ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -334,39 +340,36 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       transaction_id,
     } = req.body;
 
-    // 🔐 Validate required fields
+    // 🔐 Validation
     if (!event_id || !user_name || !phone) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 🔥 Get price from DB (source of truth)
-   const eventResult = await pool.query(
-  "SELECT price FROM events WHERE id = $1",
-  [event_id]
-);
+    // 🔥 Get event price
+    const eventResult = await pool.query(
+      "SELECT price FROM events WHERE id = $1",
+      [event_id]
+    );
 
     if (eventResult.rows.length === 0) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // ✅ Convert safely
     const price = Number(eventResult.rows[0].price);
     const qty = Number(quantity) || 1;
 
-    // 🔐 Validate numbers
-    if (!price || price <= 0) {
+    if (isNaN(price) || price <= 0) {
       return res.status(400).json({ message: "Invalid ticket price" });
     }
 
-    if (!qty || qty <= 0) {
+    if (isNaN(qty) || qty <= 0) {
       return res.status(400).json({ message: "Invalid quantity" });
     }
 
-    // 💰 Calculate total
     const amount = price * qty;
 
-    // 🧾 Save ticket
-    await pool.query(
+    // ✅ Insert ticket
+    const insertResult = await pool.query(
       `INSERT INTO tickets (
         id,
         event_id,
@@ -378,7 +381,8 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
         transaction_id,
         amount,
         status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')
+      RETURNING *`,
       [
         uuidv4(),
         event_id,
@@ -395,6 +399,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       amount,
+      ticket: insertResult.rows[0],
       message: "Ticket purchased successfully",
     });
 
