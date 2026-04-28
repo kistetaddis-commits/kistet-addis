@@ -36,9 +36,8 @@ async function handleResponse(res: Response) {
 // =========================
 const getToken = () => {
   const token = localStorage.getItem("token");
-  return token && token !== "null" && token !== "undefined"
-    ? token
-    : null;
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
 };
 
 const authHeader = () => {
@@ -47,10 +46,9 @@ const authHeader = () => {
 };
 
 // =========================
-// API OBJECT
+// API
 // =========================
-const api = {
-
+export const api = {
   // ================= AUTH =================
   login: async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/login`, {
@@ -60,11 +58,7 @@ const api = {
     });
 
     const data = await handleResponse(res);
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-    }
-
+    if (data.token) localStorage.setItem("token", data.token);
     return data;
   },
 
@@ -76,11 +70,7 @@ const api = {
     });
 
     const data = await handleResponse(res);
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-    }
-
+    if (data.token) localStorage.setItem("token", data.token);
     return data;
   },
 
@@ -88,6 +78,7 @@ const api = {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
@@ -101,7 +92,17 @@ const api = {
     return handleResponse(res);
   },
 
+  getAllEvents: async () => {
+    const res = await fetch(`${API_URL}/events`);
+    return handleResponse(res);
+  },
+
   getEvent: async (id: string) => {
+    const res = await fetch(`${API_URL}/events/${id}`);
+    return handleResponse(res);
+  },
+
+  getEventById: async (id: string) => {
     const res = await fetch(`${API_URL}/events/${id}`);
     return handleResponse(res);
   },
@@ -119,15 +120,14 @@ const api = {
     return handleResponse(res);
   },
 
+  // ================= UPLOAD =================
   uploadImage: async (file: File) => {
     const form = new FormData();
     form.append("image", file);
 
     const res = await fetch(`${API_URL}/upload`, {
       method: "POST",
-      headers: {
-        ...authHeader(),
-      },
+      headers: authHeader(),
       body: form,
     });
 
@@ -136,13 +136,11 @@ const api = {
 
   // ================= TICKETS =================
   createTicket: async (data: any) => {
-    const token = getToken();
-
     const res = await fetch(`${API_URL}/tickets/purchase`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...authHeader(),
       },
       body: JSON.stringify(data),
     });
@@ -150,33 +148,15 @@ const api = {
     return handleResponse(res);
   },
 
+  purchaseTicket: async (data: any) => {
+    return api.createTicket(data);
+  },
+
   getTicketById: async (id: string) => {
     const res = await fetch(`${API_URL}/tickets/${id}`, {
       headers: authHeader(),
     });
-    return handleResponse(res);
-  },
 
-  getPendingTickets: async () => {
-    const res = await fetch(`${API_URL}/tickets/pending`, {
-      headers: authHeader(),
-    });
-    return handleResponse(res);
-  },
-
-  approveTicket: async (id: string) => {
-    const res = await fetch(`${API_URL}/tickets/approve/${id}`, {
-      method: "PUT",
-      headers: authHeader(),
-    });
-    return handleResponse(res);
-  },
-
-  rejectTicket: async (id: string) => {
-    const res = await fetch(`${API_URL}/tickets/reject/${id}`, {
-      method: "PUT",
-      headers: authHeader(),
-    });
     return handleResponse(res);
   },
 
@@ -189,6 +169,7 @@ const api = {
       },
       body: JSON.stringify({ qrCode }),
     });
+
     return handleResponse(res);
   },
 
@@ -197,10 +178,15 @@ const api = {
     const res = await fetch(`${API_URL}/payments/pending`, {
       headers: authHeader(),
     });
+
     return handleResponse(res);
   },
 
-  verifyPayment: async (id: string, status: string, reason?: string) => {
+  verifyPayment: async (
+    id: string,
+    status: "verified" | "rejected",
+    reason?: string
+  ) => {
     const res = await fetch(`${API_URL}/payments/verify/${id}`, {
       method: "PUT",
       headers: {
@@ -213,6 +199,76 @@ const api = {
     return handleResponse(res);
   },
 
+  // ================= USERS =================
+  updateProfile: async (data: any) => {
+    const res = await fetch(`${API_URL}/users/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader(),
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= ORGANIZERS =================
+  getOrganizers: async () => {
+    const res = await fetch(`${API_URL}/organizers`, {
+      headers: authHeader(),
+    });
+
+    return handleResponse(res);
+  },
+
+  createOrganizer: async (data: any) => {
+    const res = await fetch(`${API_URL}/organizers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader(),
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= ADMIN =================
+  getMetrics: async () => {
+    const res = await fetch(`${API_URL}/admin/metrics`, {
+      headers: authHeader(),
+    });
+
+    return handleResponse(res);
+  },
+
+  // ================= ADMIN FIX (ADDED) =================
+  getPendingTickets: async () => {
+    const res = await fetch(`${API_URL}/tickets/pending`, {
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  approveTicket: async (ticketId: string) => {
+    const res = await fetch(`${API_URL}/tickets/approve/${ticketId}`, {
+      method: "PUT",
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  rejectTicket: async (ticketId: string) => {
+    const res = await fetch(`${API_URL}/tickets/reject/${ticketId}`, {
+      method: "PUT",
+      headers: authHeader(),
+    });
+    return handleResponse(res);
+  },
+
+  // ================= PAYMENT ACCOUNTS =================
   getPaymentAccounts: async () => {
     const res = await fetch(`${API_URL}/payments/accounts`, {
       headers: authHeader(),
@@ -229,7 +285,6 @@ const api = {
       },
       body: JSON.stringify(data),
     });
-
     return handleResponse(res);
   },
 
@@ -242,7 +297,6 @@ const api = {
       },
       body: JSON.stringify(data),
     });
-
     return handleResponse(res);
   },
 
@@ -251,37 +305,39 @@ const api = {
       method: "DELETE",
       headers: authHeader(),
     });
-
-    return handleResponse(res);
-  },
-
-  // ================= ADMIN =================
-  getMetrics: async () => {
-    const res = await fetch(`${API_URL}/admin/metrics`, {
-      headers: authHeader(),
-    });
-    return handleResponse(res);
-  },
-
-  getOrganizers: async () => {
-    const res = await fetch(`${API_URL}/organizers`, {
-      headers: authHeader(),
-    });
-    return handleResponse(res);
-  },
-
-  createOrganizer: async (data: any) => {
-    const res = await fetch(`${API_URL}/organizers`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeader(),
-      },
-      body: JSON.stringify(data),
-    });
-
     return handleResponse(res);
   },
 };
 
-export default api;
+// =========================
+// EXPORTS
+// =========================
+export const {
+  login,
+  loginWithUsernameOrEmail,
+  getMe,
+  logout,
+  getEvents,
+  getAllEvents,
+  getEvent,
+  getEventById,
+  createEvent,
+  uploadImage,
+  createTicket,
+  purchaseTicket,
+  getTicketById,
+  scanTicket,
+  getPendingPayments,
+  verifyPayment,
+  updateProfile,
+  getOrganizers,
+  createOrganizer,
+  getMetrics,
+  getPendingTickets,
+  approveTicket,
+  rejectTicket,
+  getPaymentAccounts,
+  createPaymentAccount,
+  updatePaymentAccount,
+  deletePaymentAccount,
+} = api;
