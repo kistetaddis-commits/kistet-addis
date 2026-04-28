@@ -324,6 +324,8 @@ app.get("/api/payments/pending", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
 // ================= TICKETS =================
 
 app.get("/api/tickets/pending", authenticateToken, async (req, res) => {
@@ -353,6 +355,8 @@ app.get("/api/tickets/approved", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
 // ================= PURCHASE TICKET =================
 app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
   try {
@@ -366,9 +370,18 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       transaction_id,
     } = req.body;
 
-    // 🔐 Validation
+    // 🔐 Basic validation
     if (!event_id || !user_name || !phone) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // 🔥 Enforce payment method (IMPORTANT FIX)
+    const allowedMethods = ["cbe", "telebirr", "mpesa", "cash"];
+
+    if (!method || !allowedMethods.includes(method)) {
+      return res.status(400).json({
+        message: "Payment method must be selected from list",
+      });
     }
 
     // 🔥 Get event price
@@ -416,7 +429,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
         phone,
         email || null,
         qty,
-        method || "cash",
+        method, // ✅ no fallback now
         transaction_id || null,
         amount,
       ]
