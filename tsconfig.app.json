@@ -35,7 +35,7 @@
 
     /* 🔥 FIX: silence baseUrl deprecation */
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0"
+    
   },
 
   "include": ["src"]
