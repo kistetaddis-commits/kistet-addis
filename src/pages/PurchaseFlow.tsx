@@ -81,16 +81,16 @@ const PurchaseFlow: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    try {
-      const ticket = await api.createTicket({
-        event_id: event.id,
-        user_name: formData.fullName,
-        phone: formData.phone,
-        email: formData.email,
-        quantity: formData.quantity,
-        payment_method: selectedMethod,
-        transaction_id: transactionId
-      });
+try {
+  const ticket = await api.createTicket({
+    event_id: event.id,
+    user_name: formData.fullName,
+    phone: formData.phone,
+    email: formData.email,
+    quantity: formData.quantity,
+    method: selectedMethod, // ✅ FIXED
+    transaction_id: transactionId
+  });
 
       setCreatedTicket(ticket);
       setStep(3);
