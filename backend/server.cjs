@@ -284,8 +284,34 @@ app.get("/api/admin/metrics", authenticateToken, async (req, res) => {
   }
 });
 
+
+app.put("/api/tickets/approve/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      "UPDATE tickets SET status = $1 WHERE id = $2 RETURNING *",
+      ["approved", id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Ticket approved successfully",
+      ticket: result.rows[0],
+    });
+
+  } catch (err) {
+    console.error("APPROVE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ================= PAYMENTS =================
-aapp.get("/api/payments/pending", authenticateToken, async (req, res) => {
+app.get("/api/payments/pending", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM payments WHERE status = $1 ORDER BY created_at DESC",
