@@ -168,7 +168,7 @@ app.get("/api/events/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
+console.log("DB URL:", process.env.DATABASE_URL);
 // ================= CREATE EVENT =================
 app.post("/api/events", authenticateToken, async (req, res) => {
   try {
