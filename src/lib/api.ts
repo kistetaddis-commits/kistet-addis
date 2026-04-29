@@ -34,20 +34,33 @@ async function handleResponse(res: Response) {
 // =========================
 // TOKEN HELPERS
 // =========================
-const getToken = () => {
-  const token = localStorage.getItem("token");
-  if (!token || token === "null" || token === "undefined") return null;
-  return token;
+// ================= TOKEN HELPERS =================
+const getToken = (): string | null => {
+  try {
+    const token = localStorage.getItem("token");
+
+    if (!token || token === "null" || token === "undefined") {
+      return null;
+    }
+
+    return token;
+  } catch (err) {
+    return null;
+  }
 };
 
-const authHeader = () => {
+const authHeader = (): Record<string, string> => {
   const token = getToken();
 
-  if (!token) return {}; // ❗ DO NOT send empty header
+  // Always return a valid object
+  if (!token) {
+    return {};
+  }
 
-  return { Authorization: `Bearer ${token}` };
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 };
-
 // =========================
 // API
 // =========================
