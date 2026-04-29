@@ -312,35 +312,6 @@ app.put("/api/tickets/approve/:id", authenticateToken, async (req, res) => {
 
 
 
-
-
-
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({
-      message: "No token provided",
-    });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({
-      message: "No token provided",
-    });
-  }
-
-  try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = user;
-    next();
-  } catch (err) {
-    return res.status(403).json({
-      message: "Invalid token",
-    });
-  }
-
 // ================= PAYMENTS =================
 app.get("/api/payments/pending", authenticateToken, async (req, res) => {
   try {
@@ -397,12 +368,12 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       phone,
       email,
       quantity,
-      payment_method,
+      paymentmethod,
       transaction_id,
     } = req.body;
 
     // ✅ REQUIRED VALIDATION
-    if (!event_id || !user_name || !phone || !payment_method) {
+    if (!event_id || !user_name || !phone || !paymentmethod) {
       return res.status(400).json({
         message: "Missing required fields",
       });
@@ -444,7 +415,7 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       "M-Pesa": "m-pesa",
     };
 
-    const method = methodMap[payment_method];
+    const method = methodMap[paymentmethod];
 
     if (!method) {
       return res.status(400).json({
