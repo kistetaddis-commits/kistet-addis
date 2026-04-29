@@ -135,44 +135,51 @@ export const api = {
   },
 
   // ================= TICKETS =================
-  createTicket: async (data: any) => {
-    const res = await fetch(`${API_URL}/tickets/purchase`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeader(),
-      },
-      body: JSON.stringify(data),
-    });
+createTicket: async (data: any) => {
+  const token = localStorage.getItem("token"); // ✅ SAFE TOKEN GET
 
-    return handleResponse(res);
-  },
+  const res = await fetch(`${API_URL}/tickets/purchase`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "", // ✅ FIX HERE
+    },
+    body: JSON.stringify(data),
+  });
 
-  purchaseTicket: async (data: any) => {
-    return api.createTicket(data);
-  },
+  return handleResponse(res);
+},
 
-  getTicketById: async (id: string) => {
-    const res = await fetch(`${API_URL}/tickets/${id}`, {
-      headers: authHeader(),
-    });
+purchaseTicket: async (data: any) => {
+  return api.createTicket(data);
+},
 
-    return handleResponse(res);
-  },
+getTicketById: async (id: string) => {
+  const token = localStorage.getItem("token");
 
-  scanTicket: async (qrCode: string) => {
-    const res = await fetch(`${API_URL}/tickets/scan`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeader(),
-      },
-      body: JSON.stringify({ qrCode }),
-    });
+  const res = await fetch(`${API_URL}/tickets/${id}`, {
+    headers: {
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  });
 
-    return handleResponse(res);
-  },
+  return handleResponse(res);
+},
 
+scanTicket: async (qrCode: string) => {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(`${API_URL}/tickets/scan`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+    body: JSON.stringify({ qrCode }),
+  });
+
+  return handleResponse(res);
+},
   // ================= PAYMENTS =================
   getPendingPayments: async () => {
     const res = await fetch(`${API_URL}/payments/pending`, {
