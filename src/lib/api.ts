@@ -143,18 +143,31 @@ createTicket: async (data: any) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...authHeader(), // ✅ clean + safe
+      ...authHeader(),
     },
     body: JSON.stringify(data),
   });
 
   return handleResponse(res);
 },
-getTicketById: async (id: string) => {
-  const res = await fetch(`${API_URL}/tickets/${id}`, {
+
+// ✅ ADD THIS (IMPORTANT FIX)
+purchaseTicket: async (data: any) => {
+  const res = await fetch(`${API_URL}/tickets/purchase`, {
+    method: "POST",
     headers: {
+      "Content-Type": "application/json",
       ...authHeader(),
     },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(res);
+},
+
+getTicketById: async (id: string) => {
+  const res = await fetch(`${API_URL}/tickets/${id}`, {
+    headers: authHeader(),
   });
 
   return handleResponse(res);
@@ -172,7 +185,6 @@ scanTicket: async (qrCode: string) => {
 
   return handleResponse(res);
 },
-
 
   // ================= PAYMENTS =================
 getPendingPayments: async (): Promise<any> => {
@@ -327,6 +339,7 @@ export const {
   getEventById,
   createEvent,
   uploadImage,
+  purchaseTicket,
   createTicket,
   getTicketById,
   scanTicket,
