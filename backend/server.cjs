@@ -314,7 +314,7 @@ app.put("/api/tickets/approve/:id", authenticateToken, async (req, res) => {
 
 
 
-function authenticateToken(req, res, next) {
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -340,7 +340,7 @@ function authenticateToken(req, res, next) {
       message: "Invalid token",
     });
   }
-}
+
 // ================= PAYMENTS =================
 app.get("/api/payments/pending", authenticateToken, async (req, res) => {
   try {
