@@ -366,49 +366,66 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       phone,
       email,
       quantity,
-      method,
+      payment_method,
       transaction_id,
     } = req.body;
 
-    // 🔐 Basic validation
-    if (!event_id || !user_name || !phone) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    // 🔥 Enforce payment method (IMPORTANT FIX)
-    const allowedMethods = ["cbe", "telebirr", "mpesa", "cash"];
-
-    if (!method || !allowedMethods.includes(method)) {
+    // ✅ REQUIRED VALIDATION
+    if (!event_id || !user_name || !phone || !payment_method) {
       return res.status(400).json({
-        message: "Payment method must be selected from list",
+        message: "Missing required fields",
       });
     }
 
-    // 🔥 Get event price
+    if (!transaction_id) {
+      return res.status(400).json({
+        message: "Transaction ID is required",
+      });
+    }
+
+    // ✅ GET EVENT PRICE
     const eventResult = await pool.query(
       "SELECT price FROM events WHERE id = $1",
       [event_id]
     );
 
     if (eventResult.rows.length === 0) {
-      return res.status(404).json({ message: "Event not found" });
+      return res.status(404).json({
+        message: "Event not found",
+      });
     }
 
     const price = Number(eventResult.rows[0].price);
     const qty = Number(quantity) || 1;
 
-    if (isNaN(price) || price <= 0) {
-      return res.status(400).json({ message: "Invalid ticket price" });
-    }
-
-    if (isNaN(qty) || qty <= 0) {
-      return res.status(400).json({ message: "Invalid quantity" });
+    if (price <= 0 || qty <= 0) {
+      return res.status(400).json({
+        message: "Invalid price or quantity",
+      });
     }
 
     const amount = price * qty;
 
-    // ✅ Insert ticket
-    const insertResult = await pool.query(
+    // 🔥 VERY IMPORTANT: MATCH YOUR UI VALUES
+    const methodMap = {
+      Telebirr: "telebirr",
+      CBE: "cbe",
+      "M-Pesa": "m-pesa",
+    };
+
+    const method = methodMap[payment_method];
+
+    if (!method) {
+      return res.status(400).json({
+        message: "Payment method must be selected from list",
+      });
+    }
+
+    // ✅ USER FROM TOKEN
+    const userId = req.user?.id;
+
+    // ✅ INSERT
+    const result = await pool.query(
       `INSERT INTO tickets (
         id,
         event_id,
@@ -419,8 +436,11 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
         method,
         transaction_id,
         amount,
-        status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')
+        status,
+        user_id,
+        created_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,NOW())
       RETURNING *`,
       [
         uuidv4(),
@@ -429,28 +449,22 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
         phone,
         email || null,
         qty,
-        method, // ✅ no fallback now
-        transaction_id || null,
+        method,
+        transaction_id,
         amount,
+        userId || null,
       ]
     );
 
-    return res.json({
-      success: true,
-      amount,
-      ticket: insertResult.rows[0],
-      message: "Ticket purchased successfully",
-    });
+    return res.json(result.rows[0]);
 
   } catch (err) {
-    console.error("❌ PURCHASE ERROR:", err);
+    console.error("PURCHASE ERROR:", err);
     return res.status(500).json({
-      success: false,
       message: err.message,
     });
   }
 });
-
 // ================= ORGANIZERS =================
 app.get("/api/organizers", authenticateToken, async (req, res) => {
   try {
