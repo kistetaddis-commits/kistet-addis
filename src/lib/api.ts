@@ -42,7 +42,10 @@ const getToken = () => {
 
 const authHeader = () => {
   const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+
+  if (!token) return {}; // ❗ DO NOT send empty header
+
+  return { Authorization: `Bearer ${token}` };
 };
 
 // =========================
@@ -136,30 +139,21 @@ export const api = {
 
   // ================= TICKETS =================
 createTicket: async (data: any) => {
-  const token = localStorage.getItem("token"); // ✅ SAFE TOKEN GET
-
   const res = await fetch(`${API_URL}/tickets/purchase`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "", // ✅ FIX HERE
+      ...authHeader(), // ✅ clean + safe
     },
     body: JSON.stringify(data),
   });
 
   return handleResponse(res);
 },
-
-purchaseTicket: async (data: any) => {
-  return api.createTicket(data);
-},
-
 getTicketById: async (id: string) => {
-  const token = localStorage.getItem("token");
-
   const res = await fetch(`${API_URL}/tickets/${id}`, {
     headers: {
-      Authorization: token ? `Bearer ${token}` : "",
+      ...authHeader(),
     },
   });
 
@@ -167,44 +161,47 @@ getTicketById: async (id: string) => {
 },
 
 scanTicket: async (qrCode: string) => {
-  const token = localStorage.getItem("token");
-
   const res = await fetch(`${API_URL}/tickets/scan`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
+      ...authHeader(),
     },
     body: JSON.stringify({ qrCode }),
   });
 
   return handleResponse(res);
 },
+
+
   // ================= PAYMENTS =================
-  getPendingPayments: async () => {
-    const res = await fetch(`${API_URL}/payments/pending`, {
-      headers: authHeader(),
-    });
+getPendingPayments: async (): Promise<any> => {
+  const res = await fetch(`${API_URL}/payments/pending`, {
+    method: "GET",
+    headers: {
+      ...authHeader(),
+    },
+  });
 
-    return handleResponse(res);
-  },
+  return handleResponse(res);
+},
 
-  verifyPayment: async (
-    id: string,
-    status: "verified" | "rejected",
-    reason?: string
-  ) => {
-    const res = await fetch(`${API_URL}/payments/verify/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeader(),
-      },
-      body: JSON.stringify({ status, reason }),
-    });
+verifyPayment: async (
+  id: string,
+  status: "verified" | "rejected",
+  reason?: string
+): Promise<any> => {
+  const res = await fetch(`${API_URL}/payments/verify/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeader(),
+    },
+    body: JSON.stringify({ status, reason }),
+  });
 
-    return handleResponse(res);
-  },
+  return handleResponse(res);
+},
 
   // ================= USERS =================
   updateProfile: async (data: any) => {
@@ -319,32 +316,4 @@ scanTicket: async (qrCode: string) => {
 // =========================
 // EXPORTS
 // =========================
-export const {
-  login,
-  loginWithUsernameOrEmail,
-  getMe,
-  logout,
-  getEvents,
-  getAllEvents,
-  getEvent,
-  getEventById,
-  createEvent,
-  uploadImage,
-  createTicket,
-  purchaseTicket,
-  getTicketById,
-  scanTicket,
-  getPendingPayments,
-  verifyPayment,
-  updateProfile,
-  getOrganizers,
-  createOrganizer,
-  getMetrics,
-  getPendingTickets,
-  approveTicket,
-  rejectTicket,
-  getPaymentAccounts,
-  createPaymentAccount,
-  updatePaymentAccount,
-  deletePaymentAccount,
-} = api;
+export const apiClient = api;
