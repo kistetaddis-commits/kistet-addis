@@ -316,4 +316,31 @@ verifyPayment: async (
 // =========================
 // EXPORTS
 // =========================
-export const apiClient = api;
+export const {
+  login,
+  loginWithUsernameOrEmail,
+  getMe,
+  logout,
+  getEvents,
+  getAllEvents,
+  getEvent,
+  getEventById,
+  createEvent,
+  uploadImage,
+  createTicket,
+  getTicketById,
+  scanTicket,
+  getPendingPayments,
+  verifyPayment,
+  updateProfile,
+  getOrganizers,
+  createOrganizer,
+  getMetrics,
+  getPendingTickets,
+  approveTicket,
+  rejectTicket,
+  getPaymentAccounts,
+  createPaymentAccount,
+  updatePaymentAccount,
+  deletePaymentAccount,
+} = api;
