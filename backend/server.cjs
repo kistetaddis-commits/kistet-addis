@@ -53,20 +53,32 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+
 // ================= AUTH =================
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const authHeader =
+    req.headers.authorization || req.headers["authorization"];
 
-  if (!token) {
+  console.log("AUTH HEADER:", authHeader);
+
+  if (!authHeader) {
     return res.status(401).json({ message: "No token provided" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token" });
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "Invalid token format" });
+  }
+
+  try {
+    const user = jwt.verify(token, process.env.JWT_SECRET);
     req.user = user;
     next();
-  });
+  } catch (err) {
+    console.log("JWT ERROR:", err.message);
+    return res.status(403).json({ message: "Invalid token" });
+  }
 };
 
 // ================= LOGIN =================
@@ -372,61 +384,32 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
       transaction_id,
     } = req.body;
 
-    // ✅ REQUIRED VALIDATION
-    if (!event_id || !user_name || !phone || !paymentmethod) {
+    console.log("BODY RECEIVED:", req.body);
+    console.log("USER:", req.user);
+
+    // ✅ FIXED VALIDATION (matches your frontend)
+    if (!event_id || !user_name || !phone || !paymentmethod || !transaction_id) {
       return res.status(400).json({
         message: "Missing required fields",
+        received: req.body,
       });
     }
 
-    if (!transaction_id) {
-      return res.status(400).json({
-        message: "Transaction ID is required",
-      });
-    }
-
-    // ✅ GET EVENT PRICE
     const eventResult = await pool.query(
       "SELECT price FROM events WHERE id = $1",
       [event_id]
     );
 
     if (eventResult.rows.length === 0) {
-      return res.status(404).json({
-        message: "Event not found",
-      });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     const price = Number(eventResult.rows[0].price);
-    const qty = Number(quantity) || 1;
-
-    if (price <= 0 || qty <= 0) {
-      return res.status(400).json({
-        message: "Invalid price or quantity",
-      });
-    }
+    const qty = Number(quantity || 1);
 
     const amount = price * qty;
 
-    // 🔥 VERY IMPORTANT: MATCH YOUR UI VALUES
-    const methodMap = {
-      Telebirr: "telebirr",
-      CBE: "cbe",
-      "M-Pesa": "m-pesa",
-    };
-
-    const method = methodMap[paymentmethod];
-
-    if (!method) {
-      return res.status(400).json({
-        message: "Payment method must be selected from list",
-      });
-    }
-
-    // ✅ USER FROM TOKEN
-    const userId = req.user?.id;
-
-    // ✅ INSERT
+    // ✅ IMPORTANT: keep EXACT values from frontend (NO mapping needed)
     const result = await pool.query(
       `INSERT INTO tickets (
         id,
@@ -451,15 +434,14 @@ app.post("/api/tickets/purchase", authenticateToken, async (req, res) => {
         phone,
         email || null,
         qty,
-        method,
+        paymentmethod, // ✅ USE DIRECTLY (IMPORTANT FIX)
         transaction_id,
         amount,
-        userId || null,
+        req.user?.id || null,
       ]
     );
 
     return res.json(result.rows[0]);
-
   } catch (err) {
     console.error("PURCHASE ERROR:", err);
     return res.status(500).json({
