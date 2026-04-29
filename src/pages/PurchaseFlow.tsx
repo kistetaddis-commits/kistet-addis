@@ -81,16 +81,16 @@ const PurchaseFlow: React.FC = () => {
     }
 
     setIsSubmitting(true);
-try {
-  const ticket = await api.createTicket({
-    event_id: event.id,
-    user_name: formData.fullName,
-    phone: formData.phone,
-    email: formData.email,
-    quantity: formData.quantity,
-    method: selectedMethod, // ✅ FIXED
-    transaction_id: transactionId
-  });
+    try {
+      const ticket = await api.createTicket({
+        event_id: event.id,
+        user_name: formData.fullName,
+        phone: formData.phone,
+        email: formData.email,
+        quantity: formData.quantity,
+        payment_method: selectedMethod,
+        transaction_id: transactionId
+      });
 
       setCreatedTicket(ticket);
       setStep(3);
@@ -308,27 +308,23 @@ try {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-  {[
-    { value: 'telebirr', label: 'Telebirr', icon: Smartphone, color: 'bg-blue-600' },
-    { value: 'cbe', label: 'CBE', icon: Building, color: 'bg-purple-600' },
-    { value: 'mpesa', label: 'M-Pesa', icon: Smartphone, color: 'bg-red-600' }
-  ].map((method) => (
-    <button
-      key={method.value}
-      onClick={() => setSelectedMethod(method.value)}
-      className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${
-        selectedMethod === method.value
-          ? 'border-blue-600 bg-blue-50'
-          : 'border-gray-100 bg-gray-50 hover:border-blue-200'
-      }`}
-    >
-      <div className={`w-14 h-14 ${method.color} rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg`}>
-        <method.icon className="w-7 h-7" />
-      </div>
-      <p className="font-black text-gray-900 text-sm">{method.label}</p>
-    </button>
-  ))}
-</div>
+                  {[ 
+                    { id: 'Telebirr', icon: Smartphone, color: 'bg-blue-600' },
+                    { id: 'CBE', icon: Building, color: 'bg-purple-600' },
+                    { id: 'M-Pesa', icon: Smartphone, color: 'bg-red-600' }
+                  ].map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setSelectedMethod(method.id as PaymentMethod)}
+                      className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${selectedMethod === method.id ? 'border-blue-600 bg-blue-50' : 'border-gray-100 bg-gray-50 hover:border-blue-200'}`}
+                    >
+                      <div className={`w-14 h-14 ${method.color} rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg`}>
+                        <method.icon className="w-7 h-7" />
+                      </div>
+                      <p className="font-black text-gray-900 text-sm">{method.id}</p>
+                    </button>
+                  ))}
+                </div>
 
                 <div className="p-8 bg-gray-900 rounded-[2.5rem] text-white space-y-6">
                    <p className="text-4xl font-black">
