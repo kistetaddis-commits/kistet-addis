@@ -83,13 +83,14 @@ const PurchaseFlow: React.FC = () => {
     setIsSubmitting(true);
     try {
       const ticket = await api.createTicket({
-        event_id: event.id,
-        user_name: formData.fullName,
-        phone: formData.phone,
-        email: formData.email,
-        quantity: formData.quantity,
-        paymentmethod: selectedMethod,
-        transaction_id: transactionId
+  eventId: event.id,
+  userName: formData.fullName,
+  phone: formData.phone,
+  email: formData.email,
+  quantity: formData.quantity,
+  paymentMethod: selectedMethod,
+  transactionId: transactionId
+
       });
 
       setCreatedTicket(ticket);
@@ -387,9 +388,10 @@ const PurchaseFlow: React.FC = () => {
                     
                     <div className="flex justify-center py-6">
                       <TicketQR 
+  
   ticketId={createdTicket.id}
   eventId={event.id}
-  
+  userName={createdTicket.user_name || formData.fullName}
   size={220}
 />
                     </div>

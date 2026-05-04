@@ -26,7 +26,7 @@ const HomePage: React.FC = () => {
         const [evs, cats, vids] = await Promise.all([
           api.getEvents(),
           api.getCategories(),
-          api.getVideos({ featured: true })
+          api.getVideos()
         ]);
         setEvents(evs || []);
         setCategories(cats || []);
@@ -171,7 +171,7 @@ const HomePage: React.FC = () => {
                   <Link to={`/event/${event.id}`} className="flex flex-col h-full">
                     <div className="relative h-80 overflow-hidden">
                       <img 
-                        src={event.image_url} 
+                        src={event.image_url || "/placeholder.jpg"} 
                         alt={getEventTitle(event)} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                       />

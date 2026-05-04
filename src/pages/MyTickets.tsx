@@ -22,10 +22,7 @@ const MyTickets: React.FC = () => {
     setIsLoading(true);
     setHasSearched(true);
     try {
-      const data = await api.getMyTickets({ 
-        phone: identifier, 
-        email: identifier.includes('@') ? identifier : undefined 
-      });
+    const data = await api.getMyTickets();
       setTickets(data);
       if (data.length === 0) {
         toast.info('No tickets found for this contact information.');
@@ -255,10 +252,10 @@ const MyTickets: React.FC = () => {
                       <div className="w-64 flex flex-col items-center justify-center border-l-2 border-dashed border-gray-200 pl-12">
                          <div className="mb-6 p-4 border-4 border-gray-900 rounded-3xl">
                             <TicketQR 
-                               ticketId={ticket.id} 
                                eventId={ticket.eventId} 
                                userName={ticket.user_name} 
-                               size={200} 
+                               size={200}ticketId={ticket.id} 
+                                
                             />
                          </div>
                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scan at Entrance</p>

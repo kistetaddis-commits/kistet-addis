@@ -3,19 +3,22 @@ import { QRCodeSVG } from "qrcode.react";
 
 interface TicketQRProps {
   ticketId: string;
-  id: string;
-  title: string;
+  eventId: string;
+  userName: string;
   size?: number;
 }
 
 const TicketQR: React.FC<TicketQRProps> = ({
   ticketId,
-  id,
+  eventId,
+  userName,
   size = 200,
 }) => {
+  // 🔥 Better structured QR payload (more useful for scanning systems)
   const qrData = JSON.stringify({
     ticketId,
-    id,
+    eventId,
+    userName,
   });
 
   return (
