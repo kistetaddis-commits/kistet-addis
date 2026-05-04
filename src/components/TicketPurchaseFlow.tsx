@@ -371,7 +371,12 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
                             <p className="text-xs text-slate-500 mt-1">Your payment was verified.</p>
                           </div>
                           <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl border border-gray-100 flex justify-center">
-                            <TicketQR ticketId={createdTicket.id}  eventId={event.id}  size={150} />
+                            <TicketQR 
+  ticketId={createdTicket.id}  
+  eventId={event.id}  
+  userName={createdTicket.user_name}  
+  size={150} 
+/>
                           </div>
                           <div className="grid grid-cols-2 gap-2 w-full">
                             <button className="flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-slate-800 rounded-xl text-xs font-bold"><Download className="w-3.5 h-3.5" /> Save</button>
