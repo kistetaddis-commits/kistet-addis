@@ -188,8 +188,7 @@ const MyTickets: React.FC = () => {
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-xl">
                            <TicketQR 
                              ticketId={ticket.id} 
-                             eventId={ticket.eventId} 
-                             userName={ticket.user_name} 
+                             eventId={ticket.eventId}  
                              size={180} 
                            />
                         </div>
@@ -253,7 +252,7 @@ const MyTickets: React.FC = () => {
                          <div className="mb-6 p-4 border-4 border-gray-900 rounded-3xl">
                             <TicketQR 
                                eventId={ticket.eventId} 
-                               userName={ticket.user_name} 
+                               
                                size={200}ticketId={ticket.id} 
                                 
                             />
