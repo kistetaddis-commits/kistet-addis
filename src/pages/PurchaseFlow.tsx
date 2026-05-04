@@ -88,7 +88,7 @@ const PurchaseFlow: React.FC = () => {
         phone: formData.phone,
         email: formData.email,
         quantity: formData.quantity,
-        payment_method: selectedMethod,
+        paymentmethod: selectedMethod,
         transaction_id: transactionId
       });
 
@@ -389,6 +389,7 @@ const PurchaseFlow: React.FC = () => {
                       <TicketQR 
   ticketId={createdTicket.id}
   eventId={event.id}
+  
   size={220}
 />
                     </div>
