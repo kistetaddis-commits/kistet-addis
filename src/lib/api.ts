@@ -9,7 +9,11 @@ const API_URL = RAW_API_URL.endsWith("/api")
   : `${RAW_API_URL}/api`;
 
 console.log("🌍 API URL:", API_URL);
-
+const normalizeTicket = (ticket: any) => ({
+  ...ticket,
+  eventId: ticket.event_id || ticket.eventId,
+  userName: ticket.user_name || ticket.userName,
+});
 // =========================
 // RESPONSE HANDLER
 // =========================
@@ -175,7 +179,9 @@ purchaseTicket: async (data: any) => {
     body: JSON.stringify(data),
   });
 
-  return handleResponse(res);
+  const result = await handleResponse(res);
+
+  return normalizeTicket(result);
 },
 
 getTicketById: async (id: string) => {
@@ -183,7 +189,9 @@ getTicketById: async (id: string) => {
     headers: authHeader(),
   });
 
-  return handleResponse(res);
+  const data = await handleResponse(res);
+
+  return normalizeTicket(data);
 },
 
 scanTicket: async (qrCode: string) => {
@@ -289,7 +297,11 @@ getMyTickets: async () => {
   const res = await fetch(`${API_URL}/tickets/my`, {
     headers: authHeader(),
   });
-  return handleResponse(res);
+
+  const data = await handleResponse(res);
+
+  // 🔥 normalize here
+  return data.map(normalizeTicket);
 },
 
   // ================= ADMIN FIX (ADDED) =================
