@@ -20,8 +20,6 @@ export type Event = {
 
   price: number;
 
-  
-
   total_tickets?: number;
 
   sold_tickets?: number;
@@ -36,16 +34,43 @@ export type Event = {
   created_at?: string;
 };
 
+// ================= EVENT CATEGORY (NEW) =================
+export type EventCategory = {
+  id: string;
+  name: string;
+  image?: string;
+};
+
+// ================= PROMOTIONAL VIDEO (NEW) =================
+export type PromotionalVideo = {
+  id: string;
+  title?: string;
+  url: string;
+  platform: "youtube" | "tiktok" | "instagram" | "facebook" | "twitter";
+  created_at?: string;
+};
+
 // ================= TICKET =================
 export type Ticket = {
   id: string;
+
   user_name: string;
   email?: string;
   phone?: string;
+
   quantity: number;
+
   status: "pending" | "approved" | "rejected";
+
   payment_method?: string;
   transaction_id?: string;
+
+  // ✅ FIX: Add missing fields used in frontend
+  eventId?: string;            // FIX for event_id error
+  event_name?: string;
+  event_date?: string;
+  event_location?: string;
+  qr_code?: string;
 };
 
 // ================= USER =================

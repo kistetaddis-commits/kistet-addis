@@ -555,7 +555,65 @@ app.post(
     res.json({ url });
   }
 );
+// ================= CATEGORIES =================
+app.get("/api/categories", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, name, image_url AS image
+      FROM categories
+      ORDER BY name ASC
+    `);
 
+    res.json(result.rows);
+  } catch (err) {
+    console.error("GET CATEGORIES ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+// ================= PROMOTIONAL VIDEOS =================
+app.get("/api/videos", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, title, url, platform, created_at
+      FROM promotional_videos
+      ORDER BY created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("GET VIDEOS ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+// ================= MY TICKETS =================
+app.get("/api/tickets/my", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        t.id,
+        t.quantity,
+        t.status,
+        t.transaction_id,
+        t.method AS payment_method,
+        t.created_at,
+
+        e.id AS event_id,
+        e.title AS event_name,
+        e.event_date AS event_date,
+        e.location AS event_location
+
+      FROM tickets t
+      JOIN events e ON t.event_id = e.id
+      WHERE t.user_id = $1
+      ORDER BY t.created_at DESC
+    `, [req.user.id]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("MY TICKETS ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
 // ================= HEALTH =================
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });

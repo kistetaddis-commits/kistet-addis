@@ -272,6 +272,25 @@ verifyPayment: async (
 
     return handleResponse(res);
   },
+  // ================= CATEGORIES =================
+getCategories: async () => {
+  const res = await fetch(`${API_URL}/categories`);
+  return handleResponse(res);
+},
+
+// ================= PROMOTIONAL VIDEOS =================
+getVideos: async () => {
+  const res = await fetch(`${API_URL}/videos`);
+  return handleResponse(res);
+},
+
+// ================= MY TICKETS =================
+getMyTickets: async () => {
+  const res = await fetch(`${API_URL}/tickets/my`, {
+    headers: authHeader(),
+  });
+  return handleResponse(res);
+},
 
   // ================= ADMIN FIX (ADDED) =================
   getPendingTickets: async () => {
@@ -369,4 +388,7 @@ export const {
   createPaymentAccount,
   updatePaymentAccount,
   deletePaymentAccount,
+  getCategories,
+  getVideos,
+  getMyTickets,
 } = api;
