@@ -39,6 +39,9 @@ export type EventCategory = {
   id: string;
   name: string;
   image?: string;
+  icon?: string;
+  slug?: string;
+  image_url?: string;
 };
 
 // ================= PROMOTIONAL VIDEO (NEW) =================
@@ -48,6 +51,7 @@ export type PromotionalVideo = {
   url: string;
   platform: "youtube" | "tiktok" | "instagram" | "facebook" | "twitter";
   created_at?: string;
+  is_featured?: boolean;
 };
 
 // ================= TICKET =================

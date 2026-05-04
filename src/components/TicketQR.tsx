@@ -4,6 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 interface TicketQRProps {
   ticketId: string;
   eventId: string;
+  userName: string;
   size?: number;
 }
 
