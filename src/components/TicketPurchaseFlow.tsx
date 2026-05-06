@@ -374,7 +374,7 @@ const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ event, onClose 
                             <TicketQR 
   ticketId={createdTicket.id}  
   eventId={event.id}  
-  userName={createdTicket.userName}  
+  userName={createdTicket.user_name}  
   size={150} 
 />
                           </div>

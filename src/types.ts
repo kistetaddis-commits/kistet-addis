@@ -4,24 +4,17 @@ export type Language = "en" | "am" | "om";
 export type Event = {
   id: string;
 
-  // keep multilingual support but SAFE
   title: string | { en: string; am?: string; om?: string };
-
   description?: string;
-
   event_type?: string;
 
-  // ✅ ONLY ONE DATE FIELD
   date: string;
-
   location?: string;
 
   image_url?: string;
 
   price: number;
-
   total_tickets?: number;
-
   sold_tickets?: number;
 
   selling_deadline?: string;
@@ -34,7 +27,7 @@ export type Event = {
   created_at?: string;
 };
 
-// ================= EVENT CATEGORY (NEW) =================
+// ================= EVENT CATEGORY =================
 export type EventCategory = {
   id: string;
   name: string;
@@ -44,7 +37,7 @@ export type EventCategory = {
   image_url?: string;
 };
 
-// ================= PROMOTIONAL VIDEO (NEW) =================
+// ================= PROMOTIONAL VIDEO =================
 export type PromotionalVideo = {
   id: string;
   title?: string;
@@ -54,11 +47,12 @@ export type PromotionalVideo = {
   is_featured?: boolean;
 };
 
-// ================= TICKET =================
+// ================= TICKET (FIXED - IMPORTANT) =================
 export type Ticket = {
   id: string;
 
-  user_name: string;
+  // ✅ camelCase (frontend standard)
+  userName: string;
   email?: string;
   phone?: string;
 
@@ -66,15 +60,16 @@ export type Ticket = {
 
   status: "pending" | "approved" | "rejected";
 
-  payment_method?: string;
-  transaction_id?: string;
+  paymentMethod?: string;
+  transactionId?: string;
 
-  // ✅ FIX: Add missing fields used in frontend
-  eventId?: string;            // FIX for event_id error
-  event_name?: string;
-  event_date?: string;
-  event_location?: string;
-  qr_code?: string;
+  // event mapping (camelCase)
+  eventId?: string;
+  eventName?: string;
+  eventDate?: string;
+  eventLocation?: string;
+
+  qrCode?: string;
 };
 
 // ================= USER =================
@@ -103,9 +98,9 @@ export type PurchaseFormData = {
 // ================= PAYMENT ACCOUNT =================
 export type PaymentAccount = {
   id: string;
-  method_name: string;
-  account_number: string;
-  account_name: string;
+  methodName: string;
+  accountNumber: string;
+  accountName: string;
   description?: string;
-  is_active: boolean;
+  isActive: boolean;
 };

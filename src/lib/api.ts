@@ -10,9 +10,24 @@ const API_URL = RAW_API_URL.endsWith("/api")
 
 console.log("🌍 API URL:", API_URL);
 const normalizeTicket = (ticket: any) => ({
-  ...ticket,
-  eventId: ticket.event_id || ticket.eventId,
-  userName: ticket.user_name || ticket.userName,
+  id: ticket.id,
+
+  userName: ticket.user_name ?? ticket.userName,
+  email: ticket.email,
+  phone: ticket.phone,
+
+  quantity: ticket.quantity,
+  status: ticket.status,
+
+  paymentMethod: ticket.payment_method,
+  transactionId: ticket.transaction_id,
+
+  eventId: ticket.event_id ?? ticket.eventId,
+  eventName: ticket.event_name,
+  eventDate: ticket.event_date,
+  eventLocation: ticket.event_location,
+
+  qrCode: ticket.qr_code,
 });
 // =========================
 // RESPONSE HANDLER
