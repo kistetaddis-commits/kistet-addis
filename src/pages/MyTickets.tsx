@@ -188,7 +188,8 @@ const MyTickets: React.FC = () => {
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-xl">
                            <TicketQR 
                              ticketId={ticket.id} 
-                             eventId={ticket.eventId}  
+                             eventId={ticket.eventId} 
+                             userName={ticket.userName} 
                              size={180} 
                            />
                         </div>
@@ -239,7 +240,7 @@ const MyTickets: React.FC = () => {
                          
                          <div className="space-y-2">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Attendee</p>
-                            <p className="text-2xl font-black text-blue-600">{ticket.user_name}</p>
+                            <p className="text-2xl font-black text-blue-600">{ticket.userName}</p>
                          </div>
 
                          <div className="mt-12 flex items-center gap-3">
@@ -250,12 +251,12 @@ const MyTickets: React.FC = () => {
                       
                       <div className="w-64 flex flex-col items-center justify-center border-l-2 border-dashed border-gray-200 pl-12">
                          <div className="mb-6 p-4 border-4 border-gray-900 rounded-3xl">
-                            <TicketQR 
-                               eventId={ticket.eventId} 
-                               
-                               size={200}ticketId={ticket.id} 
-                                
-                            />
+                        <TicketQR 
+  ticketId={ticket.id}
+  eventId={ticket.eventId} 
+  userName={ticket.userName} 
+  size={200}
+/>
                          </div>
                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scan at Entrance</p>
                       </div>
